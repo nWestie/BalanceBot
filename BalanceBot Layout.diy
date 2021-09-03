@@ -3743,16 +3743,16 @@ V9fTy9uCfMfK1c0jGbSif//Z</data>
   </components>
   <groups>
     <set>
-      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[26]"/>
-      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[27]"/>
-      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[24]"/>
-      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[25]"/>
+      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[35]"/>
+      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[36]"/>
+      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[34]"/>
+      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[37]"/>
     </set>
     <set>
-      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[35]"/>
-      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[37]"/>
-      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[34]"/>
-      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[36]"/>
+      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[24]"/>
+      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[25]"/>
+      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[27]"/>
+      <diylc.connectivity.HookupWire reference="../../../components/diylc.connectivity.HookupWire[26]"/>
     </set>
   </groups>
   <lockedLayers>
