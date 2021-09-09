@@ -165,10 +165,10 @@
       <name>W28</name>
       <alpha>127</alpha>
       <controlPoints2>
-        <point x="2.3" y="2.3"/>
-        <point x="2.4" y="2.3"/>
-        <point x="2.5" y="2.1"/>
-        <point x="2.3" y="2.0"/>
+        <point x="2.3" y="2.1999999999999997"/>
+        <point x="2.4" y="2.1999999999999997"/>
+        <point x="2.5" y="2.0"/>
+        <point x="2.3" y="1.9"/>
       </controlPoints2>
       <color hex="000000"/>
       <pointCount>FOUR</pointCount>
@@ -184,8 +184,8 @@
       <alpha>127</alpha>
       <controlPoints2>
         <point x="3.1" y="3.8"/>
-        <point x="2.6" y="2.0"/>
-        <point x="3.8" y="2.4"/>
+        <point x="2.5" y="2.0"/>
+        <point x="4.1" y="2.6"/>
         <point x="3.9" y="1.5"/>
       </controlPoints2>
       <color hex="cc0033"/>
@@ -3047,12 +3047,12 @@ QooooA//2Q==</data>
       <borderColor hex="5b90b1"/>
       <labelColor hex="000000"/>
       <leadColor hex="cccccc"/>
-      <display>NAME</display>
+      <display>VALUE</display>
       <flipStanding>false</flipStanding>
       <labelOriantation>Directional</labelOriantation>
       <moveLabel>false</moveLabel>
       <hideShortLeads>false</hideShortLeads>
-      <value value="10.0" unit="K"/>
+      <value value="220.0" unit="R"/>
       <power>HALF</power>
       <powerNew value="1000.0" unit="MW"/>
       <colorCode>_5_BAND</colorCode>
@@ -3064,20 +3064,20 @@ QooooA//2Q==</data>
       <length value="0.3" unit="in"/>
       <width value="0.1" unit="in"/>
       <points>
-        <point x="2.4" y="2.3"/>
+        <point x="2.7" y="2.2"/>
         <point x="2.7" y="2.5"/>
-        <point x="2.55" y="2.4"/>
+        <point x="2.7" y="2.35"/>
       </points>
       <bodyColor hex="82cffd"/>
       <borderColor hex="5b90b1"/>
       <labelColor hex="000000"/>
       <leadColor hex="cccccc"/>
-      <display>NAME</display>
+      <display>VALUE</display>
       <flipStanding>false</flipStanding>
       <labelOriantation>Directional</labelOriantation>
       <moveLabel>false</moveLabel>
       <hideShortLeads>false</hideShortLeads>
-      <value value="10.0" unit="K"/>
+      <value value="2.0" unit="K"/>
       <power>HALF</power>
       <powerNew value="1000.0" unit="MW"/>
       <colorCode>_5_BAND</colorCode>
@@ -3103,7 +3103,7 @@ QooooA//2Q==</data>
     </diylc.connectivity.HookupWire>
     <diylc.misc.Label>
       <name>L1</name>
-      <point x="3.3" y="2.1"/>
+      <point x="3.4" y="2.1"/>
       <text>Motor Driver Control</text>
       <font name="Dialog.plain" size="14" style="0"/>
       <color hex="000000"/>
@@ -3188,7 +3188,7 @@ QooooA//2Q==</data>
         <point x="2.3" y="2.5"/>
         <point x="2.4" y="2.4"/>
         <point x="2.5" y="2.3"/>
-        <point x="2.3" y="2.2"/>
+        <point x="2.3" y="2.3"/>
       </controlPoints2>
       <color hex="cc0033"/>
       <pointCount>FOUR</pointCount>
@@ -3199,6 +3199,56 @@ QooooA//2Q==</data>
       <striped>false</striped>
       <stripeColor hex="ffff00"/>
     </diylc.connectivity.HookupWire>
+    <diylc.passive.Resistor>
+      <name>R3</name>
+      <alpha>127</alpha>
+      <length value="0.3" unit="in"/>
+      <width value="0.1" unit="in"/>
+      <points>
+        <point x="2.4" y="2.6"/>
+        <point x="2.7" y="2.6"/>
+        <point x="2.55" y="2.6"/>
+      </points>
+      <bodyColor hex="82cffd"/>
+      <borderColor hex="5b90b1"/>
+      <labelColor hex="000000"/>
+      <leadColor hex="cccccc"/>
+      <display>VALUE</display>
+      <flipStanding>false</flipStanding>
+      <labelOriantation>Directional</labelOriantation>
+      <moveLabel>false</moveLabel>
+      <hideShortLeads>false</hideShortLeads>
+      <value value="10.0" unit="K"/>
+      <power>HALF</power>
+      <powerNew value="1000.0" unit="MW"/>
+      <colorCode>_5_BAND</colorCode>
+      <shape>Standard</shape>
+    </diylc.passive.Resistor>
+    <diylc.passive.Resistor>
+      <name>R4</name>
+      <alpha>127</alpha>
+      <length value="0.3" unit="in"/>
+      <width value="0.1" unit="in"/>
+      <points>
+        <point x="2.4" y="2.2"/>
+        <point x="2.7" y="2.1"/>
+        <point x="2.55" y="2.15"/>
+      </points>
+      <bodyColor hex="82cffd"/>
+      <borderColor hex="5b90b1"/>
+      <labelColor hex="000000"/>
+      <leadColor hex="cccccc"/>
+      <display>VALUE</display>
+      <flipStanding>false</flipStanding>
+      <labelOriantation>Directional</labelOriantation>
+      <moveLabel>false</moveLabel>
+      <hideShortLeads>false</hideShortLeads>
+      <value value="1.0" unit="K"/>
+      <power>HALF</power>
+      <powerNew value="1000.0" unit="MW"/>
+      <colorCode>_5_BAND</colorCode>
+      <shape>Standard</shape>
+    </diylc.passive.Resistor>
     <diylc.connectivity.HookupWire>
       <name>W30</name>
       <alpha>127</alpha>
@@ -5203,31 +5253,59 @@ Y1I1sXUlDVXP/9k=</data>
       <newScale>25</newScale>
       <sizingMode>TwoPoints</sizingMode>
     </diylc.misc.Image>
-    <diylc.passive.Resistor>
-      <name>R3</name>
+    <diylc.electromechanical.PinHeader>
+      <name>PH7</name>
       <alpha>127</alpha>
-      <length value="0.3" unit="in"/>
-      <width value="0.1" unit="in"/>
-      <points>
-        <point x="2.4" y="2.6"/>
-        <point x="2.7" y="2.6"/>
-        <point x="2.55" y="2.6"/>
-      </points>
-      <bodyColor hex="82cffd"/>
-      <borderColor hex="5b90b1"/>
-      <labelColor hex="000000"/>
-      <leadColor hex="cccccc"/>
-      <display>NAME</display>
-      <flipStanding>false</flipStanding>
-      <labelOriantation>Directional</labelOriantation>
-      <moveLabel>false</moveLabel>
-      <hideShortLeads>false</hideShortLeads>
-      <value value="10.0" unit="K"/>
-      <power>HALF</power>
-      <powerNew value="1000.0" unit="MW"/>
-      <colorCode>_5_BAND</colorCode>
-      <shape>Standard</shape>
-    </diylc.passive.Resistor>
+      <orientation>_90</orientation>
+      <controlPoints>
+        <point x="5.0" y="2.3"/>
+        <point x="4.9" y="2.3"/>
+        <point x="4.8" y="2.3"/>
+        <point x="4.7" y="2.3"/>
+      </controlPoints>
+      <rowCount>1</rowCount>
+      <columnCount>4</columnCount>
+      <spacing value="0.1" unit="in"/>
+      <shrouded>false</shrouded>
+      <bodyColor hex="808080"/>
+      <shroudColor hex="595959"/>
+    </diylc.electromechanical.PinHeader>
+    <diylc.connectivity.HookupWire>
+      <name>W2</name>
+      <alpha>127</alpha>
+      <controlPoints2>
+        <point x="4.8" y="2.4"/>
+        <point x="4.8" y="2.6"/>
+        <point x="4.1" y="2.3"/>
+        <point x="4.2" y="2.7"/>
+      </controlPoints2>
+      <color hex="cc0033"/>
+      <pointCount>FOUR</pointCount>
+      <style>SOLID</style>
+      <smooth>true</smooth>
+      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
+      <gauge>_22</gauge>
+      <striped>false</striped>
+      <stripeColor hex="ffff00"/>
+    </diylc.connectivity.HookupWire>
+    <diylc.connectivity.HookupWire>
+      <name>W6</name>
+      <alpha>127</alpha>
+      <controlPoints2>
+        <point x="5.0" y="2.4"/>
+        <point x="4.9" y="3.4"/>
+        <point x="4.1" y="3.0"/>
+        <point x="4.2" y="3.4"/>
+      </controlPoints2>
+      <color hex="cc0033"/>
+      <pointCount>FOUR</pointCount>
+      <style>SOLID</style>
+      <smooth>true</smooth>
+      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
+      <gauge>_22</gauge>
+      <striped>false</striped>
+      <stripeColor hex="ffff00"/>
+    </diylc.connectivity.HookupWire>
   </components>
   <groups/>
   <lockedLayers>
