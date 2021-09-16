@@ -1,3 +1,8 @@
+#include <helper_3dmath.h>
+#include <MPU6050.h>
+#include <MPU6050_6Axis_MotionApps20.h>
+#include <MPU6050_9Axis_MotionApps41.h>
+
 void setup() {
   // put your setup code here, to run once:
   pinMode(21, OUTPUT);
@@ -9,9 +14,5 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  digitalWrite(21, HIGH);
-  delay(1000);
-  digitalWrite(21, LOW);
-  delay(1000);
   
 }
