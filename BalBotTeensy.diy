@@ -72,24 +72,6 @@
       <stripeColor hex="ffff00"/>
     </diylc.connectivity.HookupWire>
     <diylc.connectivity.HookupWire>
-      <name>W16</name>
-      <alpha>127</alpha>
-      <controlPoints2>
-        <point x="0.9" y="2.7"/>
-        <point x="1.0" y="2.8"/>
-        <point x="1.4" y="3.2"/>
-        <point x="1.6" y="3.0"/>
-      </controlPoints2>
-      <color hex="000000"/>
-      <pointCount>FOUR</pointCount>
-      <style>SOLID</style>
-      <smooth>true</smooth>
-      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
-      <gauge>_22</gauge>
-      <striped>false</striped>
-      <stripeColor hex="ffff00"/>
-    </diylc.connectivity.HookupWire>
-    <diylc.connectivity.HookupWire>
       <name>W22</name>
       <alpha>127</alpha>
       <controlPoints2>
@@ -197,26 +179,6 @@
       <striped>false</striped>
       <stripeColor hex="ffff00"/>
     </diylc.connectivity.HookupWire>
-    <diylc.connectivity.CopperTrace>
-      <name>Trace1</name>
-      <alpha>127</alpha>
-      <points>
-        <point x="2.6" y="3.0"/>
-        <point x="2.4" y="3.3"/>
-        <point x="2.5" y="3.15"/>
-      </points>
-      <bodyColor hex="ffffff"/>
-      <borderColor hex="000000"/>
-      <labelColor hex="000000"/>
-      <leadColor hex="000000"/>
-      <display>NAME</display>
-      <flipStanding>false</flipStanding>
-      <labelOriantation>Directional</labelOriantation>
-      <moveLabel>false</moveLabel>
-      <hideShortLeads>false</hideShortLeads>
-      <thickness value="1.0" unit="mm"/>
-      <layer>_1</layer>
-    </diylc.connectivity.CopperTrace>
     <diylc.electromechanical.PinHeader>
       <name>PH2</name>
       <alpha>127</alpha>
@@ -316,7 +278,7 @@
     <diylc.misc.Label>
       <name>L8</name>
       <point x="0.5" y="2.4"/>
-      <text>IMU&lt;br&gt;MPU6050&lt;br&gt;</text>
+      <text>IMU&lt;br&gt;GY-521/&lt;br&gt;MPU6050&lt;br&gt;</text>
       <font name="Dialog.bold" size="14" style="1"/>
       <color hex="000000"/>
       <center>false</center>
@@ -1911,31 +1873,6 @@ hHRSm7WJ27EfbCVXw+oSltwhJ4ezW0ZxTFEtjOwCoccwHlB8j4UIUbJfEKq8TKdmjMVNcC01Fh50
       <colorCode>_5_BAND</colorCode>
       <shape>Standard</shape>
     </diylc.passive.Resistor>
-    <diylc.passive.Resistor>
-      <name>R2</name>
-      <alpha>127</alpha>
-      <length value="0.3" unit="in"/>
-      <width value="0.1" unit="in"/>
-      <points>
-        <point x="0.9" y="1.3"/>
-        <point x="1.0" y="1.6"/>
-        <point x="0.9499999999999998" y="1.45"/>
-      </points>
-      <bodyColor hex="82cffd"/>
-      <borderColor hex="5b90b1"/>
-      <labelColor hex="000000"/>
-      <leadColor hex="cccccc"/>
-      <display>VALUE</display>
-      <flipStanding>false</flipStanding>
-      <labelOriantation>Directional</labelOriantation>
-      <moveLabel>false</moveLabel>
-      <hideShortLeads>false</hideShortLeads>
-      <value value="1.0" unit="K"/>
-      <power>HALF</power>
-      <powerNew value="1000.0" unit="MW"/>
-      <colorCode>_5_BAND</colorCode>
-      <shape>Standard</shape>
-    </diylc.passive.Resistor>
     <diylc.connectivity.HookupWire>
       <name>W35</name>
       <alpha>127</alpha>
@@ -2148,56 +2085,6 @@ hHRSm7WJ27EfbCVXw+oSltwhJ4ezW0ZxTFEtjOwCoccwHlB8j4UIUbJfEKq8TKdmjMVNcC01Fh50
       <striped>false</striped>
       <stripeColor hex="ffff00"/>
     </diylc.connectivity.HookupWire>
-    <diylc.passive.Resistor>
-      <name>R4</name>
-      <alpha>127</alpha>
-      <length value="0.3" unit="in"/>
-      <width value="0.1" unit="in"/>
-      <points>
-        <point x="1.3" y="2.5"/>
-        <point x="1.6" y="2.8"/>
-        <point x="1.45" y="2.65"/>
-      </points>
-      <bodyColor hex="82cffd"/>
-      <borderColor hex="5b90b1"/>
-      <labelColor hex="000000"/>
-      <leadColor hex="cccccc"/>
-      <display>VALUE</display>
-      <flipStanding>false</flipStanding>
-      <labelOriantation>Directional</labelOriantation>
-      <moveLabel>false</moveLabel>
-      <hideShortLeads>false</hideShortLeads>
-      <value value="4.7" unit="K"/>
-      <power>HALF</power>
-      <powerNew value="1000.0" unit="MW"/>
-      <colorCode>_5_BAND</colorCode>
-      <shape>Standard</shape>
-    </diylc.passive.Resistor>
-    <diylc.passive.Resistor>
-      <name>R</name>
-      <alpha>127</alpha>
-      <length value="0.3" unit="in"/>
-      <width value="0.1" unit="in"/>
-      <points>
-        <point x="1.3" y="2.6"/>
-        <point x="1.5" y="2.9"/>
-        <point x="1.4" y="2.75"/>
-      </points>
-      <bodyColor hex="82cffd"/>
-      <borderColor hex="5b90b1"/>
-      <labelColor hex="000000"/>
-      <leadColor hex="cccccc"/>
-      <display>VALUE</display>
-      <flipStanding>false</flipStanding>
-      <labelOriantation>Directional</labelOriantation>
-      <moveLabel>false</moveLabel>
-      <hideShortLeads>false</hideShortLeads>
-      <value value="4.7" unit="K"/>
-      <power>HALF</power>
-      <powerNew value="1000.0" unit="MW"/>
-      <colorCode>_5_BAND</colorCode>
-      <shape>Standard</shape>
-    </diylc.passive.Resistor>
     <diylc.misc.Label>
       <name>L5</name>
       <point x="2.2" y="3.4"/>
@@ -2372,6 +2259,113 @@ hHRSm7WJ27EfbCVXw+oSltwhJ4ezW0ZxTFEtjOwCoccwHlB8j4UIUbJfEKq8TKdmjMVNcC01Fh50
       <verticalAlignment>CENTER</verticalAlignment>
       <orientation>DEFAULT</orientation>
     </diylc.misc.Label>
+    <diylc.connectivity.HookupWire>
+      <name>W28</name>
+      <alpha>127</alpha>
+      <controlPoints2>
+        <point x="0.6" y="1.6"/>
+        <point x="0.9" y="1.5999999999999996"/>
+        <point x="1.0000000000000002" y="1.4"/>
+        <point x="0.7999999999999997" y="1.3"/>
+      </controlPoints2>
+      <color hex="000000"/>
+      <pointCount>FOUR</pointCount>
+      <style>SOLID</style>
+      <smooth>true</smooth>
+      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
+      <gauge>_22</gauge>
+      <striped>false</striped>
+      <stripeColor hex="ffff00"/>
+    </diylc.connectivity.HookupWire>
+    <diylc.connectivity.HookupWire>
+      <name>W17</name>
+      <alpha>127</alpha>
+      <controlPoints2>
+        <point x="1.3" y="2.8"/>
+        <point x="1.3" y="2.9"/>
+        <point x="1.4" y="2.9"/>
+        <point x="1.6" y="2.9"/>
+      </controlPoints2>
+      <color hex="cc0033"/>
+      <pointCount>FOUR</pointCount>
+      <style>SOLID</style>
+      <smooth>true</smooth>
+      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
+      <gauge>_22</gauge>
+      <striped>false</striped>
+      <stripeColor hex="ffff00"/>
+    </diylc.connectivity.HookupWire>
+    <diylc.connectivity.HookupWire>
+      <name>W15</name>
+      <alpha>127</alpha>
+      <controlPoints2>
+        <point x="0.6" y="3.1"/>
+        <point x="0.7" y="3.1"/>
+        <point x="0.8" y="3.1"/>
+        <point x="1.0" y="3.1"/>
+      </controlPoints2>
+      <color hex="000000"/>
+      <pointCount>FOUR</pointCount>
+      <style>SOLID</style>
+      <smooth>true</smooth>
+      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
+      <gauge>_22</gauge>
+      <striped>false</striped>
+      <stripeColor hex="ffff00"/>
+    </diylc.connectivity.HookupWire>
+    <diylc.connectivity.HookupWire>
+      <name>W36</name>
+      <alpha>127</alpha>
+      <controlPoints2>
+        <point x="0.8" y="1.9"/>
+        <point x="0.7" y="1.9"/>
+        <point x="0.7" y="1.9"/>
+        <point x="0.6" y="1.9"/>
+      </controlPoints2>
+      <color hex="ff0000"/>
+      <pointCount>FOUR</pointCount>
+      <style>SOLID</style>
+      <smooth>true</smooth>
+      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
+      <gauge>_22</gauge>
+      <striped>false</striped>
+      <stripeColor hex="ffff00"/>
+    </diylc.connectivity.HookupWire>
+    <diylc.connectivity.HookupWire>
+      <name>W16</name>
+      <alpha>127</alpha>
+      <controlPoints2>
+        <point x="0.9" y="2.7"/>
+        <point x="1.0" y="2.8"/>
+        <point x="1.4" y="3.2"/>
+        <point x="1.6" y="3.0"/>
+      </controlPoints2>
+      <color hex="000000"/>
+      <pointCount>FOUR</pointCount>
+      <style>SOLID</style>
+      <smooth>true</smooth>
+      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
+      <gauge>_22</gauge>
+      <striped>false</striped>
+      <stripeColor hex="ffff00"/>
+    </diylc.connectivity.HookupWire>
+    <diylc.connectivity.HookupWire>
+      <name>W34</name>
+      <alpha>127</alpha>
+      <controlPoints2>
+        <point x="0.6" y="3.0"/>
+        <point x="1.2" y="3.0"/>
+        <point x="1.6" y="2.6"/>
+      </controlPoints2>
+      <color hex="ffff00"/>
+      <pointCount>THREE</pointCount>
+      <style>SOLID</style>
+      <smooth>true</smooth>
+      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
+      <gauge>_22</gauge>
+      <striped>false</striped>
+      <stripeColor hex="ffff00"/>
+    </diylc.connectivity.HookupWire>
     <diylc.misc.Image>
       <name>Img2</name>
       <alpha>127</alpha>
@@ -3421,24 +3415,31 @@ QooooA//2Q==</data>
       <newScale>25</newScale>
       <sizingMode>TwoPoints</sizingMode>
     </diylc.misc.Image>
-    <diylc.connectivity.HookupWire>
-      <name>W28</name>
+    <diylc.passive.Resistor>
+      <name>R2</name>
       <alpha>127</alpha>
-      <controlPoints2>
-        <point x="0.6" y="1.6"/>
-        <point x="0.9" y="1.5999999999999996"/>
-        <point x="1.0000000000000002" y="1.4"/>
-        <point x="0.7999999999999997" y="1.3"/>
-      </controlPoints2>
-      <color hex="000000"/>
-      <pointCount>FOUR</pointCount>
-      <style>SOLID</style>
-      <smooth>true</smooth>
-      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
-      <gauge>_22</gauge>
-      <striped>false</striped>
-      <stripeColor hex="ffff00"/>
-    </diylc.connectivity.HookupWire>
+      <length value="0.3" unit="in"/>
+      <width value="0.1" unit="in"/>
+      <points>
+        <point x="0.9" y="1.3"/>
+        <point x="1.0" y="1.6"/>
+        <point x="0.9499999999999998" y="1.45"/>
+      </points>
+      <bodyColor hex="82cffd"/>
+      <borderColor hex="5b90b1"/>
+      <labelColor hex="000000"/>
+      <leadColor hex="cccccc"/>
+      <display>VALUE</display>
+      <flipStanding>false</flipStanding>
+      <labelOriantation>Directional</labelOriantation>
+      <moveLabel>false</moveLabel>
+      <hideShortLeads>false</hideShortLeads>
+      <value value="1.0" unit="K"/>
+      <power>HALF</power>
+      <powerNew value="1000.0" unit="MW"/>
+      <colorCode>_5_BAND</colorCode>
+      <shape>Standard</shape>
+    </diylc.passive.Resistor>
     <diylc.misc.Image>
       <name>Img4</name>
       <alpha>127</alpha>
@@ -5425,83 +5426,10 @@ Y1I1sXUlDVXP/9k=</data>
       <newScale>25</newScale>
       <sizingMode>TwoPoints</sizingMode>
     </diylc.misc.Image>
-    <diylc.connectivity.HookupWire>
-      <name>W17</name>
-      <alpha>127</alpha>
-      <controlPoints2>
-        <point x="1.3" y="2.8"/>
-        <point x="1.3" y="2.9"/>
-        <point x="1.4" y="2.9"/>
-        <point x="1.6" y="2.9"/>
-      </controlPoints2>
-      <color hex="cc0033"/>
-      <pointCount>FOUR</pointCount>
-      <style>SOLID</style>
-      <smooth>true</smooth>
-      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
-      <gauge>_22</gauge>
-      <striped>false</striped>
-      <stripeColor hex="ffff00"/>
-    </diylc.connectivity.HookupWire>
-    <diylc.connectivity.HookupWire>
-      <name>W34</name>
-      <alpha>127</alpha>
-      <controlPoints2>
-        <point x="0.6" y="3.0"/>
-        <point x="1.2" y="3.0"/>
-        <point x="1.6" y="2.6"/>
-      </controlPoints2>
-      <color hex="ffff00"/>
-      <pointCount>THREE</pointCount>
-      <style>SOLID</style>
-      <smooth>true</smooth>
-      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
-      <gauge>_22</gauge>
-      <striped>false</striped>
-      <stripeColor hex="ffff00"/>
-    </diylc.connectivity.HookupWire>
-    <diylc.connectivity.HookupWire>
-      <name>W15</name>
-      <alpha>127</alpha>
-      <controlPoints2>
-        <point x="0.6" y="3.1"/>
-        <point x="0.7" y="3.1"/>
-        <point x="0.8" y="3.1"/>
-        <point x="1.0" y="3.1"/>
-      </controlPoints2>
-      <color hex="000000"/>
-      <pointCount>FOUR</pointCount>
-      <style>SOLID</style>
-      <smooth>true</smooth>
-      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
-      <gauge>_22</gauge>
-      <striped>false</striped>
-      <stripeColor hex="ffff00"/>
-    </diylc.connectivity.HookupWire>
-    <diylc.connectivity.HookupWire>
-      <name>W36</name>
-      <alpha>127</alpha>
-      <controlPoints2>
-        <point x="0.8" y="1.9"/>
-        <point x="0.7" y="1.9"/>
-        <point x="0.7" y="1.9"/>
-        <point x="0.6" y="1.9"/>
-      </controlPoints2>
-      <color hex="ff0000"/>
-      <pointCount>FOUR</pointCount>
-      <style>SOLID</style>
-      <smooth>true</smooth>
-      <lastUpdatePointIndex>-1</lastUpdatePointIndex>
-      <gauge>_22</gauge>
-      <striped>false</striped>
-      <stripeColor hex="ffff00"/>
-    </diylc.connectivity.HookupWire>
   </components>
   <groups/>
   <lockedLayers>
     <int>1</int>
-    <int>2</int>
-    <int>3</int>
   </lockedLayers>
   <lockedComponents/>
   <hiddenLayers>
