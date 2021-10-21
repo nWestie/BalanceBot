@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Encoder.h>
+#include <MPU6050.h>
 //#define ENCODER_OPTIMIZE_INTERRUPTS
 Encoder m2(7, 8);
 const float BATTMULT = (3.3*13)/(3*1024);
