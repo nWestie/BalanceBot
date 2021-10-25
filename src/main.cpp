@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <Encoder.h>
-
+#include <imu.cpp>
 //encoder defines
 #define ENCODER_OPTIMIZE_INTERRUPTS
 
@@ -16,7 +16,7 @@ void setup(){
 
 }
 void loop(){
-  Serial.println(analogRead(20)*BATTMULT);
+  //Serial.println(analogRead(20)*BATTMULT);
   delay(100);
   /*Serial.println(m2.read());
   digitalWrite(15, HIGH);
@@ -33,5 +33,5 @@ void loop(){
   digitalWrite(15, LOW);
   digitalWrite(17, LOW);
   Serial.println(m2.read());
-  delay(1000);*/
+  delay(1000);//*/
 }

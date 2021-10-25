@@ -1,13 +1,10 @@
 #include "Arduino.h"
-#include "I2Cdev.h"
+//#include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
-#include "i2c_t3.h"
 
 //MPU6050 defines
+#define INTERRUPT_PIN 22  // use pin 2 on Arduino Uno & most boards
 #define I2CDEV_IMPLEMENTATION       I2CDEV_TEENSY_3X_WIRE
-#define OUTPUT_READABLE_YAWPITCHROLL
-#define INTERRUPT_PIN 2  // use pin 2 on Arduino Uno & most boards
-
 volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
 
 // ================================================================
@@ -40,6 +37,9 @@ class IMU {
         int init(){
             mpu.initialize();
             pinMode(INTERRUPT_PIN, INPUT);
+            
+            Wire.begin();
+            Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
             
             Serial.println(F("Testing device connections..."));
             Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
