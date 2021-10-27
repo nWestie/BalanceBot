@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <Encoder.h>
-#include <imu.cpp>
+#include <IMU.h>
 //encoder defines
 #define ENCODER_OPTIMIZE_INTERRUPTS
 

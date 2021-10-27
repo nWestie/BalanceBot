@@ -1,7 +1,4 @@
-#include "Arduino.h"
-//#include "I2Cdev.h"
-#include "MPU6050_6Axis_MotionApps20.h"
-
+#include <IMU.h>
 //MPU6050 defines
 #define INTERRUPT_PIN 22  // use pin 2 on Arduino Uno & most boards
 #define I2CDEV_IMPLEMENTATION       I2CDEV_TEENSY_3X_WIRE
