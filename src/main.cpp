@@ -1,13 +1,18 @@
+#define ENCODER_OPTIMIZE_INTERRUPTS
+
 #include <Arduino.h>
 #include <Encoder.h>
-#include <IMU.h>
+#include "IMU.h"
 //encoder defines
-#define ENCODER_OPTIMIZE_INTERRUPTS
+volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
 
 
 Encoder m2(7, 8);
 const float BATTMULT = (3.3*13)/(3*1024);
 
+void dmpDataReady() {
+    mpuInterrupt = true;
+}
 void setup(){
   Serial.begin(9600);
   pinMode(15, OUTPUT); //m1 dir
@@ -35,3 +40,4 @@ void loop(){
   Serial.println(m2.read());
   delay(1000);//*/
 }
+
