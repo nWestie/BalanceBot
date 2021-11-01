@@ -4,16 +4,13 @@
 #include <Encoder.h>
 #include "IMU.h"
 //encoder defines
-volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
 
 
 Encoder m2(7, 8);
 const float BATTMULT = (3.3*13)/(3*1024);
-
-void dmpDataReady() {
-    mpuInterrupt = true;
-}
+IMU imu;
 void setup(){
+  imu.init();
   Serial.begin(9600);
   pinMode(15, OUTPUT); //m1 dir
   pinMode(17, OUTPUT); //m1 pwm
@@ -22,6 +19,7 @@ void setup(){
 }
 void loop(){
   //Serial.println(analogRead(20)*BATTMULT);
+  imu.update();
   delay(100);
   /*Serial.println(m2.read());
   digitalWrite(15, HIGH);
