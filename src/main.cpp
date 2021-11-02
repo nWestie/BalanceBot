@@ -1,6 +1,5 @@
 #define ENCODER_OPTIMIZE_INTERRUPTS
 
-#include <Arduino.h>
 #include <Encoder.h>
 #include "IMU.h"
 //encoder defines
@@ -18,7 +17,7 @@ void setup(){
 
 }
 void loop(){
-  //Serial.println(analogRead(20)*BATTMULT);
+  Serial.println(analogRead(20)*BATTMULT);
   imu.update();
   delay(100);
   /*Serial.println(m2.read());

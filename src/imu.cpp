@@ -1,7 +1,8 @@
 #include <IMU.h>
+
 int IMU::init(){
     mpu.initialize();
-    pinMode(INTERRUPT_PIN, INPUT);
+    //pinMode(INTERRUPT_PIN, INPUT);
        
     Wire.begin();
     Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
@@ -10,10 +11,10 @@ int IMU::init(){
     Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
     Serial.println(F("Initializing DMP..."));
     devStatus = mpu.dmpInitialize();
-    //mpu.setXGyroOffset(220);
-    //mpu.setYGyroOffset(76);
-    //mpu.setZGyroOffset(-85);
-    //mpu.setZAccelOffset(1788);
+    mpu.setXGyroOffset(220);
+    mpu.setYGyroOffset(76);
+    mpu.setZGyroOffset(-85);
+    mpu.setZAccelOffset(1788);
     if(devStatus != 0){
         Serial.print(F("DMP Initialization failed (code "));
         Serial.print(devStatus);
@@ -30,7 +31,7 @@ int IMU::init(){
     Serial.print(F("Enabling interrupt detection (Arduino external interrupt "));
     Serial.print(INTERRUPT_PIN);
     Serial.println(F(")..."));
-    attachInterrupt(INTERRUPT_PIN, dmpDataReady, RISING);
+    //attachInterrupt(INTERRUPT_PIN, dmpDataReady, RISING);
     mpuIntStatus = mpu.getIntStatus();
     Serial.println(F("DMP ready! Waiting for first interrupt..."));
     dmpReady = true;
@@ -52,3 +53,6 @@ void IMU::update(){
         Serial.println(ypr[2] * 180/M_PI);
     }
 }
+//void IMU::dmpDataReady(){
+  //  mpuInterrupt = true;
+//}

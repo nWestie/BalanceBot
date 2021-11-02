@@ -1,17 +1,13 @@
 #ifndef IMU_H_BLOCK
 #define IMU_H_BLOCK
-
-#define I2CDEV_IMPLEMENTATION       I2CDEV_TEENSY_3X_WIRE
+#include <Arduino.h>
+//#define I2CDEV_IMPLEMENTATION       I2CDEV_TEENSY_3X_WIRE
 #define INTERRUPT_PIN 22
-#include "i2c_t3.h"
+//#include "i2c_t3.h"
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 
 //MPU
-volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
-void dmpDataReady() {
-    mpuInterrupt = true;
-}
 class IMU {
     MPU6050 mpu;
     private: 
@@ -33,7 +29,11 @@ class IMU {
         float euler[3];         // [psi, theta, phi]    Euler angle container
         float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
     public:
+        //static volatile bool mpuInterrupt;     // indicates whether MPU interrupt pin has gone high
+
         int init();
         void update();
+        //static void dmpDataReady();
+
 };
 #endif
