@@ -9,8 +9,9 @@ Encoder m2(7, 8);
 const float BATTMULT = (3.3*13)/(3*1024);
 IMU imu;
 void setup(){
-  imu.init();
   Serial.begin(9600);
+  
+  imu.init();
   pinMode(15, OUTPUT); //m1 dir
   pinMode(17, OUTPUT); //m1 pwm
   pinMode(20, INPUT); //Batt Monitering
@@ -37,4 +38,5 @@ void loop(){
   Serial.println(m2.read());
   delay(1000);//*/
 }
+
 

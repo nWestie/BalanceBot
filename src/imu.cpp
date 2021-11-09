@@ -1,12 +1,19 @@
 #include <IMU.h>
 
 int IMU::init(){
-    mpu.initialize();
     //pinMode(INTERRUPT_PIN, INPUT);
-       
+    while(!Serial.available());
+    while(Serial.read() != -1);
+    pinMode(13, OUTPUT);
+    digitalWrite(13, HIGH);
+    Serial.println("beginning IMU setup");
+
+    mpu.initialize();
+    Serial.println(1);
+
     Wire.begin();
     Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
-       
+    Serial.println(1);
     Serial.println(F("Testing device connections..."));
     Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
     Serial.println(F("Initializing DMP..."));
