@@ -52,7 +52,7 @@ void IMU::setup() {
         mpuIntStatus = mpu.getIntStatus();
 
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
-        Serial.println(F("DMP ready! Waiting for first interrupt..."));
+        DPRINTLN(F("DMP ready! Waiting for first interrupt..."));
         dmpReady = true;
 
         // get expected DMP packet size for later comparison
@@ -62,9 +62,9 @@ void IMU::setup() {
         // 1 = initial memory load failed
         // 2 = DMP configuration updates failed
         // (if it's going to break, usually the code will be 1)
-        Serial.print(F("DMP Initialization failed (code "));
-        Serial.print(devStatus);
-        Serial.println(F(")"));
+        DPRINT(F("DMP Initialization failed (code "));
+        DPRINT(devStatus);
+        DPRINTLN(F(")"));
     }
 }
 

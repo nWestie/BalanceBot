@@ -238,7 +238,7 @@
     <diylc.misc.Label>
       <name>L2</name>
       <point x="2.9000000000000004" y="2.1"/>
-      <text>Motor 1 (R)</text>
+      <text>Motor 1 (L)</text>
       <font name="Dialog.bold" size="14" style="1"/>
       <color hex="000000"/>
       <center>false</center>
@@ -267,7 +267,7 @@
     <diylc.misc.Label>
       <name>L3</name>
       <point x="2.9000000000000004" y="2.9"/>
-      <text>Motor 2 (L)</text>
+      <text>Motor 2 (R)</text>
       <font name="Dialog.bold" size="14" style="1"/>
       <color hex="000000"/>
       <center>false</center>
