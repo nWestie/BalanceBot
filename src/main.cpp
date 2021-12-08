@@ -34,9 +34,6 @@ void setup(){
   imu.setup();
   Serial.println("IMU Setup Successful");
   Serial.println(lMotor.enc.read());
-  // while (Serial.available() && Serial.read());
-  // while (!Serial.available());                
-  // while (Serial.available() && Serial.read());
 }
 bool alt = false;
 void loop(){
