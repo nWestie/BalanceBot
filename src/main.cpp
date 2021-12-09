@@ -1,4 +1,4 @@
-//#define DEBUG
+#define DEBUG
 #include "debug.h"
 #include "Encoder.h"
 #include "PID_v1.h"
@@ -26,28 +26,22 @@ Motor rMotor(16, 14, 5, 6);
 void setup(){
   for(byte i = 5; i < 9; i++) pinMode(i, INPUT);
   for(byte i = 14; i < 18; i++) pinMode(i, OUTPUT);
-  
+  Serial.begin(9600);
   IFD while (Serial.available() && Serial.read()); // empty buffer
   IFD while (!Serial.available());                 // wait for data
   IFD while (Serial.available() && Serial.read()); // empty buffer again
 
-  imu.setup();
+  //imu.setup();
   Serial.println("IMU Setup Successful");
-  Serial.println(lMotor.enc.read());
+  
+  //Serial1.begin(9600);
 }
-bool alt = false;
 void loop(){
-  if(alt)lMotor.drive(255, 1);
-  else lMotor.drive(0,1);
-  Serial.println(alt);
-  delay(1000);
-  alt = !alt;
-  // if(imu.update(ypr)){
-  //   Serial.print("ypr\t");
-  //   Serial.print(ypr[0] * 180/M_PI);
-  //   Serial.print("\t");
-  //   Serial.print(ypr[1] * 180/M_PI);
-  //   Serial.print("\t");
-  //   Serial.println(ypr[2] * 180/M_PI);
-  // }
+  //send any software serial data back out on serial link
+  if (Serial.available()){
+   Serial1.write(Serial.read());
+   Serial.print("s");
+  }  
+  //send any serial data back out on software serial link
+  if (Serial1.available())Serial.write(Serial1.read());
 }
