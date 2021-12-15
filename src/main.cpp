@@ -21,8 +21,8 @@ public:
   }
 };
 float ypr[3];
-//Motor lMotor(17, 15, 7, 8); //pwm, dir, enc1, enc2
-//Motor rMotor(16, 14, 5, 6);
+Motor lMotor(17, 15, 7, 8); //pwm, dir, enc1, enc2
+Motor rMotor(16, 14, 5, 6);
 void setup(){
   for(byte i = 5; i < 9; i++) pinMode(i, INPUT);
   for(byte i = 14; i < 18; i++) pinMode(i, OUTPUT);
@@ -39,8 +39,30 @@ void setup(){
 void loop(){
   //send any software serial data back out on serial link
   if(Serial2.available()){
-    char inp[3];
-    Serial2.readBytes(inp, 4);
+    char inp[4];
+    int val;
+    bool dir = true;
+
+    Serial2.readBytes(inp, 4); //read value
+    //move chars into int
+    val = (inp[1]-0x30)*10;
+    val += inp[2]-0x30;
+    //remap to 0-255 and dir
+    val = (val * 5.12)-255;
+    if(abs(val)<20) val = 0;
+    if(val<0) {
+      dir = false;
+      val = -val;
+    }
+    //switch based on which slider its from
+    switch(inp[0]){
+    case 'A':
+      lMotor.drive(val, dir);
+      break;
+    case 'B':
+      rMotor.drive(val, dir);
+      break;
+    }
     for(byte i = 0;i<4;i++)Serial.print(inp[i], 16);
     Serial.println();
   }
