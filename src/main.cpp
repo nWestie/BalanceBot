@@ -6,8 +6,12 @@
 #include "SoftTimers.h"
 #include <Stream.h>
 
-constexpr float BATTMULT = (3.3*12.84)/(3*1024);
+constexpr float BATTMULT = (3.3*12.9)/(3*1024);
 #define BTPIN 20
+#define BATSMOOTHSIZE 5
+float battSmooth[BATSMOOTHSIZE];
+byte btInd = 0;
+
 
 IMU imu;
 
@@ -55,8 +59,11 @@ float battVolt;
 void loop(){
 if(battRefreshTimer.hasTimedOut()){
   battRefreshTimer.reset();
-  battVolt = analogRead(BTPIN)*BATTMULT;
-  
+  battSmooth[btInd] = analogRead(BTPIN)*BATTMULT;
+  btInd = (btInd + 1)%BATSMOOTHSIZE;
+  battVolt=0;
+  for(int i = 0; i < BATSMOOTHSIZE; i++)battVolt+=battSmooth[i];
+  battVolt /= 5;
   Serial2.print("*V");
   Serial2.print(battVolt);
   Serial2.print("*");
@@ -83,7 +90,8 @@ if(mainLoopTimer.hasTimedOut()){
       dir = false;
       val = -val;
     }
-    if(val<20) val = 0;
+    if(val<30) val = 0;
+    val/=2;
     //switch based on which slider its from
     switch(sw){
     case 'A':
