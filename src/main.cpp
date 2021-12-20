@@ -1,9 +1,17 @@
-#define DEBUG
+//#define DEBUG
 #include "debug.h"
 #include "Encoder.h"
 #include "PID_v1.h"
 #include "IMU.h"
+#include "SoftTimers.h"
+#include <Stream.h>
+
+constexpr float BATTMULT = (3.3*12.84)/(3*1024);
+#define BTPIN 20
+
 IMU imu;
+
+SoftTimer mainLoopTimer, battRefreshTimer;
 class Motor{
 private:
   byte dirPin, pwmPin;
@@ -26,36 +34,58 @@ Motor rMotor(16, 14, 5, 6);
 void setup(){
   for(byte i = 5; i < 9; i++) pinMode(i, INPUT);
   for(byte i = 14; i < 18; i++) pinMode(i, OUTPUT);
+
   Serial.begin(9600);
   Serial2.begin(9600);
+
+  mainLoopTimer.setTimeOutTime(40);
+  mainLoopTimer.reset();
+  battRefreshTimer.setTimeOutTime(200);
+  battRefreshTimer.reset();
+  
   IFD while (Serial.available() && Serial.read()); // empty buffer
   IFD while (!Serial.available());                 // wait for data
   IFD while (Serial.available() && Serial.read()); // empty buffer again
 
   //imu.setup();
-  Serial.println("IMU Setup Successful");  
+  IFD Serial.println("IMU Setup Successful");  
+  Serial2.print("*TIMU Setup Successful\n*");  
 }
-
+float battVolt;
 void loop(){
-  //send any software serial data back out on serial link
+if(battRefreshTimer.hasTimedOut()){
+  battRefreshTimer.reset();
+  battVolt = analogRead(BTPIN)*BATTMULT;
+  
+  Serial2.print("*V");
+  Serial2.print(battVolt);
+  Serial2.print("*");
+  Serial2.print("*C");
+  Serial2.print(battVolt);
+  Serial2.print("*");
+}
+//actually run loop every 20 ms
+if(mainLoopTimer.hasTimedOut()){
+  mainLoopTimer.reset(); 
+  
+  
   if(Serial2.available()){
-    char inp[4];
+    char sw;
     int val;
     bool dir = true;
 
-    Serial2.readBytes(inp, 4); //read value
-    //move chars into int
-    val = (inp[1]-0x30)*10;
-    val += inp[2]-0x30;
+    sw = Serial2.read(); //read ID
+    val = Serial2.parseInt(); //read num
+    Serial2.read(); // consume '/'
+    val = map(val, 0, 100, -255, 255);
     //remap to 0-255 and dir
-    val = (val * 5.12)-255;
-    if(abs(val)<20) val = 0;
     if(val<0) {
       dir = false;
       val = -val;
     }
+    if(val<20) val = 0;
     //switch based on which slider its from
-    switch(inp[0]){
+    switch(sw){
     case 'A':
       lMotor.drive(val, dir);
       break;
@@ -63,7 +93,6 @@ void loop(){
       rMotor.drive(val, dir);
       break;
     }
-    for(byte i = 0;i<4;i++)Serial.print(inp[i], 16);
-    Serial.println();
+    IFD Serial.printf("%c, %d", sw, val);
   }
-}
+}}
