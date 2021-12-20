@@ -32,6 +32,7 @@ public:
     return;
   }
 };
+
 float ypr[3];
 Motor lMotor(17, 15, 7, 8); //pwm, dir, enc1, enc2
 Motor rMotor(16, 14, 5, 6);
@@ -82,24 +83,31 @@ if(mainLoopTimer.hasTimedOut()){
     bool dir = true;
 
     sw = Serial2.read(); //read ID
-    val = Serial2.parseInt(); //read num
-    Serial2.read(); // consume '/'
-    val = map(val, 0, 100, -255, 255);
-    //remap to 0-255 and dir
-    if(val<0) {
-      dir = false;
-      val = -val;
-    }
-    if(val<30) val = 0;
-    val/=2;
     //switch based on which slider its from
     switch(sw){
-    case 'A':
+    case 'J':
+      Serial2.read(); //consume "x"
+      byte x = Serial2.parseInt(); //read x
+      Serial2.read(); // consume ','
+      Serial2.read(); // consume 'Y'
+      byte y = Serial2.parseInt(); //read y
+      x -= 255;
+      y -= 255;
+      //PID stuff will go here
+      byte l = x-y;
+      byte r = x+y;
+
+      if(x<0) {
+        dir = false;
+        val = -val;
+      }
+      if(val<30) val = 0;
+      val/=2;
       lMotor.drive(val, dir);
       break;
-    case 'B':
       rMotor.drive(val, dir);
       break;
+
     }
     IFD Serial.printf("%c, %d", sw, val);
   }
