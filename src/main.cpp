@@ -8,14 +8,18 @@
 
 constexpr float BATTMULT = (3.3*12.9)/(3*1024);
 #define BTPIN 20
-#define BATSMOOTHSIZE 5
+#define BATSMOOTHSIZE 3
 float battSmooth[BATSMOOTHSIZE];
 byte btInd = 0;
-
+float battVolt;
 
 IMU imu;
+float ypr[3];
 
-SoftTimer mainLoopTimer, battRefreshTimer;
+#define LEDPIN 21
+
+SoftTimer mainLoopTimer, battRefreshTimer, timeOut;
+
 class Motor{
 private:
   byte dirPin, pwmPin;
@@ -32,10 +36,15 @@ public:
     return;
   }
 };
-
-float ypr[3];
 Motor lMotor(17, 15, 7, 8); //pwm, dir, enc1, enc2
 Motor rMotor(16, 14, 5, 6);
+
+void stopAll(){
+  lMotor.drive(0,1);
+  rMotor.drive(0,1);
+}
+void waitForEnable();
+
 void setup(){
   for(byte i = 5; i < 9; i++) pinMode(i, INPUT);
   for(byte i = 14; i < 18; i++) pinMode(i, OUTPUT);
@@ -47,68 +56,90 @@ void setup(){
   mainLoopTimer.reset();
   battRefreshTimer.setTimeOutTime(200);
   battRefreshTimer.reset();
+  timeOut.setTimeOutTime(400);
+  timeOut.reset();
   
-  IFD while (Serial.available() && Serial.read()); // empty buffer
-  IFD while (!Serial.available());                 // wait for data
-  IFD while (Serial.available() && Serial.read()); // empty buffer again
+  Serial2.print("*TPress Power to Initialize IMU and Enable Motors\n*");  
+  waitForEnable();
 
-  //imu.setup();
-  IFD Serial.println("IMU Setup Successful");  
+  Serial2.print("*TSetting Up IMU\n*");  
+  imu.setup();
   Serial2.print("*TIMU Setup Successful\n*");  
 }
-float battVolt;
+
 void loop(){
-if(battRefreshTimer.hasTimedOut()){
-  battRefreshTimer.reset();
-  battSmooth[btInd] = analogRead(BTPIN)*BATTMULT;
-  btInd = (btInd + 1)%BATSMOOTHSIZE;
-  battVolt=0;
-  for(int i = 0; i < BATSMOOTHSIZE; i++)battVolt+=battSmooth[i];
-  battVolt /= 5;
-  Serial2.print("*V");
-  Serial2.print(battVolt);
-  Serial2.print("*");
-  Serial2.print("*C");
-  Serial2.print(battVolt);
-  Serial2.print("*");
-}
-//actually run loop every 20 ms
-if(mainLoopTimer.hasTimedOut()){
-  mainLoopTimer.reset(); 
-  
-  
-  if(Serial2.available()){
-    char sw;
-    int val;
-    bool dir = true;
+  if(battRefreshTimer.hasTimedOut()){
+    battRefreshTimer.reset();
 
-    sw = Serial2.read(); //read ID
-    //switch based on which slider its from
-    switch(sw){
-    case 'J':
-      Serial2.read(); //consume "x"
-      byte x = Serial2.parseInt(); //read x
-      Serial2.read(); // consume ','
-      Serial2.read(); // consume 'Y'
-      byte y = Serial2.parseInt(); //read y
-      x -= 255;
-      y -= 255;
-      //PID stuff will go here
-      byte l = x-y;
-      byte r = x+y;
-
-      if(x<0) {
-        dir = false;
-        val = -val;
-      }
-      if(val<30) val = 0;
-      val/=2;
-      lMotor.drive(val, dir);
-      break;
-      rMotor.drive(val, dir);
-      break;
-
-    }
-    IFD Serial.printf("%c, %d", sw, val);
+    battSmooth[btInd] = analogRead(BTPIN)*BATTMULT;
+    btInd = (btInd + 1)%BATSMOOTHSIZE;
+    
+    battVolt=0;
+    for(int i = 0; i < BATSMOOTHSIZE; i++)battVolt+=battSmooth[i];
+    battVolt /= BATSMOOTHSIZE;
+    
+    Serial2.print("*V");
+    Serial2.print(battVolt);
+    Serial2.print("*");
+    Serial2.print("*C");
+    Serial2.print(battVolt);
+    Serial2.print("*");
   }
-}}
+  //actually run loop every 40 ms
+  if(mainLoopTimer.hasTimedOut()){
+    mainLoopTimer.reset(); 
+    if(Serial2.available()){
+      char sw;
+      sw = Serial2.read(); //read ID
+      //switch based on which slider its from
+      switch(sw){
+      case 'J': {
+        Serial2.read(); //consume "x"
+        byte pow = Serial2.parseInt(); //read x
+        Serial2.read(); // consume ','
+        Serial2.read(); // consume 'Y'
+        byte steer = Serial2.parseInt(); //read y
+
+        pow -= 255;
+        steer -= 255;
+        if(abs(pow)<20) pow = 0;
+        if(abs(steer)<20) steer = 0;
+        
+        //PID stuff will go here
+        
+        //add steering
+        byte l = pow-steer;
+        byte r = pow+steer;
+        
+        lMotor.drive(min(abs(l), 255), l>0);
+        rMotor.drive(min(abs(r),255), r>0);
+        break;
+      }
+      case 'P':
+        timeOut.reset();
+        break;
+      case 'p':
+        stopAll();
+        waitForEnable();
+        break;
+      }
+    }
+  }
+  if(timeOut.hasTimedOut()){
+    stopAll();
+    waitForEnable();
+  }
+}
+void waitForEnable(){
+  bool en = true;
+  SoftTimer ledDel;
+  ledDel.setTimeOutTime(500);
+  while(true){
+    if(Serial2.read()=='P')break;
+    if(ledDel.hasTimedOut()){
+      digitalWrite(LEDPIN, en);
+      en = !en;
+    }
+    delay(20);
+  }
+};
