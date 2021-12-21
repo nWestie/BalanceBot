@@ -94,25 +94,18 @@ void loop(){
       //switch based on which slider its from
       switch(sw){
       case 'J': {
-        Serial2.read(); //consume "x"
-        byte pow = Serial2.parseInt(); //read x
-        Serial2.read(); // consume ','
-        Serial2.read(); // consume 'Y'
-        byte steer = Serial2.parseInt(); //read y
-
-        pow -= 255;
-        steer -= 255;
-        if(abs(pow)<20) pow = 0;
-        if(abs(steer)<20) steer = 0;
-        
-        //PID stuff will go here
-        
-        //add steering
-        byte l = pow-steer;
-        byte r = pow+steer;
-        
-        lMotor.drive(min(abs(l), 255), l>0);
-        rMotor.drive(min(abs(r),255), r>0);
+        int pow, steer;
+        while(true){
+          if (Serial.available()){
+            char inp=Serial.read();  //Get next character 
+            if(inp=='X') pow=Serial.parseInt();
+            if(inp=='Y') steer=Serial.parseInt();
+            if(inp=='/') break; // End character
+          }
+        }
+        Serial.print(pow);
+        Serial.print(", ");
+        Serial.println(steer);
         break;
       }
       case 'P':
