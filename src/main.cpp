@@ -59,8 +59,8 @@ void setup(){
   timeOut.setTimeOutTime(400);
   timeOut.reset();
   
-  Serial2.print("*TPress Power to Initialize IMU and Enable Motors\n*");  
-  waitForEnable();
+  Serial2.print("*TPress Power to Initialize\n IMU and Enable Motors\n*");  
+  //waitForEnable();
 
   Serial2.print("*TSetting Up IMU\n*");  
   imu.setup();
@@ -95,11 +95,11 @@ void loop(){
       switch(sw){
       case 'J': {
         Serial2.read(); //consume "x"
-        byte pow = Serial2.parseInt(); //read x
+        byte steer = Serial2.parseInt(); //read x val
         Serial2.read(); // consume ','
         Serial2.read(); // consume 'Y'
-        byte steer = Serial2.parseInt(); //read y
-
+        byte pow = Serial2.parseInt(); //read y
+        Serial2.read();
         pow -= 255;
         steer -= 255;
         if(abs(pow)<20) pow = 0;
@@ -110,7 +110,11 @@ void loop(){
         //add steering
         byte l = pow-steer;
         byte r = pow+steer;
-        
+        Serial2.print("*T");
+        Serial2.print(pow);
+        Serial2.print(", ");
+        Serial2.print(pow);
+        Serial2.print("\n*");      
         lMotor.drive(min(abs(l), 255), l>0);
         rMotor.drive(min(abs(r),255), r>0);
         break;
@@ -125,10 +129,10 @@ void loop(){
       }
     }
   }
-  if(timeOut.hasTimedOut()){
-    stopAll();
-    waitForEnable();
-  }
+  // if(timeOut.hasTimedOut()){
+  //   stopAll();
+  //   waitForEnable();
+  // }
 }
 void waitForEnable(){
   bool en = true;
