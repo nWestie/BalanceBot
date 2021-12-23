@@ -98,14 +98,34 @@ void loop(){
         while(true){
           if (Serial2.available()){
             char inp = Serial2.read();  //Get next character 
-            if(inp=='X') power = Serial2.parseInt();
-            if(inp=='Y') steer=Serial2.parseInt();
+            if(inp=='X') steer = Serial2.parseInt();
+            if(inp=='Y') power =Serial2.parseInt();
             if(inp=='/') break; // End character
           }
         }
+
+        power -= 255;
+        power = -power;
+        steer -= 255;
+        if(abs(power)<20) power = 0;
+        if(abs(steer)<20) steer = 0;
+        
+        //PID stuff will go here
+        
+        //add steering
+        byte l = power-steer;
+        byte r = power+steer;
+
         Serial.print(power);
         Serial.print(", ");
-        Serial.println(steer);
+        Serial.print(steer);
+        Serial.print(", ");
+        Serial.print(l);
+        Serial.print(", ");
+        Serial.println(r);
+
+        lMotor.drive(min(abs(l), 255), l>0);
+        rMotor.drive(min(abs(r),255), r>0);
         break;
       }
       case 'P':
