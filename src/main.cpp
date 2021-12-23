@@ -8,7 +8,7 @@
 
 constexpr float BATTMULT = (3.3*12.9)/(3*1024);
 #define BTPIN 20
-#define BATSMOOTHSIZE 3
+#define BATSMOOTHSIZE 7
 float battSmooth[BATSMOOTHSIZE];
 byte btInd = 0;
 float battVolt;
@@ -38,6 +38,7 @@ public:
 };
 Motor lMotor(17, 15, 7, 8); //pwm, dir, enc1, enc2
 Motor rMotor(16, 14, 5, 6);
+int power, steer;
 
 void stopAll(){
   lMotor.drive(0,1);
@@ -63,7 +64,7 @@ void setup(){
   //waitForEnable();
 
   Serial2.print("*TSetting Up IMU\n*");  
-  imu.setup();
+  // imu.setup();
   Serial2.print("*TIMU Setup Successful\n*");  
 }
 
@@ -88,35 +89,23 @@ void loop(){
   //actually run loop every 40 ms
   if(mainLoopTimer.hasTimedOut()){
     mainLoopTimer.reset(); 
-    if(Serial2.available()){
+    while(Serial2.available()){
       char sw;
       sw = Serial2.read(); //read ID
       //switch based on which slider its from
       switch(sw){
       case 'J': {
-        Serial2.read(); //consume "x"
-        byte steer = Serial2.parseInt(); //read x val
-        Serial2.read(); // consume ','
-        Serial2.read(); // consume 'Y'
-        byte pow = Serial2.parseInt(); //read y
-        Serial2.read();
-        pow -= 255;
-        steer -= 255;
-        if(abs(pow)<20) pow = 0;
-        if(abs(steer)<20) steer = 0;
-        
-        //PID stuff will go here
-        
-        //add steering
-        byte l = pow-steer;
-        byte r = pow+steer;
-        Serial2.print("*T");
-        Serial2.print(pow);
-        Serial2.print(", ");
-        Serial2.print(pow);
-        Serial2.print("\n*");      
-        lMotor.drive(min(abs(l), 255), l>0);
-        rMotor.drive(min(abs(r),255), r>0);
+        while(true){
+          if (Serial2.available()){
+            char inp = Serial2.read();  //Get next character 
+            if(inp=='X') power = Serial2.parseInt();
+            if(inp=='Y') steer=Serial2.parseInt();
+            if(inp=='/') break; // End character
+          }
+        }
+        Serial.print(power);
+        Serial.print(", ");
+        Serial.println(steer);
         break;
       }
       case 'P':
