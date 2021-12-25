@@ -16,7 +16,7 @@ float battVolt;
 IMU imu;
 float ypr[3];
 
-#define LEDPIN 21
+#define LEDPIN 13
 
 SoftTimer mainLoopTimer, battRefreshTimer, timeOut;
 
@@ -45,11 +45,11 @@ void stopAll(){
   rMotor.drive(0,1);
 }
 void waitForEnable();
-
+void checkBattSend();
 void setup(){
   for(byte i = 5; i < 9; i++) pinMode(i, INPUT);
   for(byte i = 14; i < 18; i++) pinMode(i, OUTPUT);
-
+  pinMode(LEDPIN, OUTPUT);
   Serial.begin(9600);
   Serial2.begin(9600);
 
@@ -60,32 +60,20 @@ void setup(){
   timeOut.setTimeOutTime(400);
   timeOut.reset();
   
-  Serial2.print("*TPress Power to Initialize\n IMU and Enable Motors\n*");  
-  //waitForEnable();
+  Serial2.print("*T\n\n\n\n\nPress Power to Initialize\n IMU and Enable Motors\n*");  
+  digitalWrite(LEDPIN, HIGH);
 
-  Serial2.print("*TSetting Up IMU\n*");  
+  waitForEnable();
+
+  Serial2.print("*T\nSetting Up IMU\n*");  
   // imu.setup();
   Serial2.print("*TIMU Setup Successful\n*");  
 }
-
+int l;
+int r;
 void loop(){
-  if(battRefreshTimer.hasTimedOut()){
-    battRefreshTimer.reset();
+  checkBattSend();
 
-    battSmooth[btInd] = analogRead(BTPIN)*BATTMULT;
-    btInd = (btInd + 1)%BATSMOOTHSIZE;
-    
-    battVolt=0;
-    for(int i = 0; i < BATSMOOTHSIZE; i++)battVolt+=battSmooth[i];
-    battVolt /= BATSMOOTHSIZE;
-    
-    Serial2.print("*V");
-    Serial2.print(battVolt);
-    Serial2.print("*");
-    Serial2.print("*C");
-    Serial2.print(battVolt);
-    Serial2.print("*");
-  }
   //actually run loop every 40 ms
   if(mainLoopTimer.hasTimedOut()){
     mainLoopTimer.reset(); 
@@ -107,25 +95,21 @@ void loop(){
         power -= 255;
         power = -power;
         steer -= 255;
-        if(abs(power)<20) power = 0;
-        if(abs(steer)<20) steer = 0;
+        steer /= 2;
         
         //PID stuff will go here
         
         //add steering
-        byte l = power-steer;
-        byte r = power+steer;
-
-        Serial.print(power);
-        Serial.print(", ");
-        Serial.print(steer);
-        Serial.print(", ");
-        Serial.print(l);
-        Serial.print(", ");
-        Serial.println(r);
-
-        lMotor.drive(min(abs(l), 255), l>0);
-        rMotor.drive(min(abs(r),255), r>0);
+        l = power + steer;
+        r = power - steer;
+        bool lDir = l>0;
+        bool rDir = r>0;
+        l = abs(l);
+        r = abs(r);
+        
+ 
+        lMotor.drive(min(l, 255), lDir);
+        rMotor.drive(min(r,255), rDir);
         break;
       }
       case 'P':
@@ -145,14 +129,40 @@ void loop(){
 }
 void waitForEnable(){
   bool en = true;
-  SoftTimer ledDel;
-  ledDel.setTimeOutTime(500);
+  unsigned long t = millis()+500;
   while(true){
     if(Serial2.read()=='P')break;
-    if(ledDel.hasTimedOut()){
+    checkBattSend();
+    if(millis()>t){
       digitalWrite(LEDPIN, en);
       en = !en;
+      t = millis()+500;
     }
     delay(20);
   }
+  digitalWrite(LEDPIN, LOW);
+};
+void checkBattSend(){
+  if(battRefreshTimer.hasTimedOut()){
+      battRefreshTimer.reset();
+
+      battSmooth[btInd] = analogRead(BTPIN)*BATTMULT;
+      btInd = (btInd + 1)%BATSMOOTHSIZE;
+      
+      battVolt=0;
+      for(int i = 0; i < BATSMOOTHSIZE; i++)battVolt+=battSmooth[i];
+      battVolt /= BATSMOOTHSIZE;
+      
+      Serial2.print("*V");
+      Serial2.print(battVolt);
+      Serial2.print("*");
+      Serial2.print("*C");
+      Serial2.print(battVolt);
+      Serial2.print("*");
+      if(battVolt <11.15){
+      Serial2.print("*\nTLOW BATT\nStopping motors\n*");
+      stopAll();
+      waitForEnable(); 
+      }  
+  } 
 };
