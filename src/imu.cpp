@@ -2,12 +2,17 @@
 #include "debug.h"
 
 #include <IMU.h>
+const int imuOffsets[6] = {-3384, -2533, 1151, 60, -6, 22};
 
-// ================================================================
-// ===                      INITIAL SETUP                       ===
-// ================================================================
-// volatile bool mpuInterrupt;// = false;     // indicates whether MPU interrupt pin has gone high
-// void dmpDataReady() {mpuInterrupt = true;}
+void IMU::setOffsets(const int TheOffsets[6])
+  { mpu.setXAccelOffset(TheOffsets [0]);
+    mpu.setYAccelOffset(TheOffsets [1]);
+    mpu.setZAccelOffset(TheOffsets [2]);
+    mpu.setXGyroOffset (TheOffsets [3]);
+    mpu.setYGyroOffset (TheOffsets [4]);
+    mpu.setZGyroOffset (TheOffsets [5]);
+  } // SetOffsets
+
 
 void IMU::setup() {
     DPRINTLN("Test debug print in imucpp");
@@ -28,11 +33,7 @@ void IMU::setup() {
     DPRINTLN(F("Initializing DMP..."));
     devStatus = mpu.dmpInitialize();
 
-    // supply your own gyro offsets here, scaled for min sensitivity
-    // mpu.setXGyroOffset(220);
-    // mpu.setYGyroOffset(76);
-    // mpu.setZGyroOffset(-85);
-    // mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
+    setOffsets(imuOffsets);
 
     // make sure it worked (returns 0 if so)
     if (devStatus == 0) {
@@ -68,12 +69,6 @@ void IMU::setup() {
     }
 }
 
-
-
-// ================================================================
-// ===                    MAIN PROGRAM LOOP                     ===
-// ================================================================
-
 bool IMU::update(float* out) { //returns true if valid packet is found
     // read a packet from FIFO
     if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // Get the Latest packet 
@@ -81,16 +76,14 @@ bool IMU::update(float* out) { //returns true if valid packet is found
         mpu.dmpGetQuaternion(&q, fifoBuffer);
         mpu.dmpGetGravity(&gravity, &q);
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-        DPRINT("ypr\t");
-        DPRINT(*ypr * 180/M_PI);
-        DPRINT("\t");
-        DPRINT(*(ypr+1) * 180/M_PI);
-        DPRINT("\t");
-        DPRINTLN(*(ypr+2) * 180/M_PI);
+       
         out[0] = ypr[0] ;
         out[1] = ypr[1] ;
         out[2] = ypr[2] ;
         return true;
     }
     return false;
+}
+float IMU::toDeg(float rad){
+    return rad * 57.2957795131;
 }

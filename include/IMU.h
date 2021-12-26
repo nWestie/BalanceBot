@@ -44,5 +44,7 @@ public:
     
     void setup();
     bool update(float*);
+    void setOffsets(const int[6]);
+    static float toDeg(float);
 };
 #endif
