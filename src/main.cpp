@@ -18,7 +18,7 @@ float ypr[3];
 
 #define LEDPIN 13
 
-SoftTimer mainLoopTimer, battRefreshTimer, timeOut;
+SoftTimer joyInpTimer, battRefreshTimer, timeOut;
 
 class Motor{
 private:
@@ -46,6 +46,9 @@ void stopAll(){
 }
 void waitForEnable();
 void checkBattSend();
+
+double pidInp =0 , pidOut = 0, pidSet = 0;
+PID pidMain(&pidInp, &pidOut, &pidSet, 5.0, 0, 0, REVERSE);
 void setup(){
   for(byte i = 5; i < 9; i++) pinMode(i, INPUT);
   for(byte i = 14; i < 18; i++) pinMode(i, OUTPUT);
@@ -53,8 +56,8 @@ void setup(){
   Serial.begin(9600);
   Serial2.begin(9600);
 
-  mainLoopTimer.setTimeOutTime(40);
-  mainLoopTimer.reset();
+  joyInpTimer.setTimeOutTime(50);
+  joyInpTimer.reset();
   battRefreshTimer.setTimeOutTime(200);
   battRefreshTimer.reset();
   timeOut.setTimeOutTime(400);
@@ -71,12 +74,12 @@ void setup(){
 }
 int l;
 int r;
+
 void loop(){
   checkBattSend();
 
-  //actually run loop every 40 ms
-  if(mainLoopTimer.hasTimedOut()){
-    mainLoopTimer.reset(); 
+  if(joyInpTimer.hasTimedOut()){
+    joyInpTimer.reset(); 
     while(Serial2.available()){
       char sw;
       sw = Serial2.read(); //read ID
@@ -92,25 +95,25 @@ void loop(){
           }
         }
 
-        power -= 255;
-        power = -power;
-        steer -= 255;
-        steer /= 2;
+        // power -= 255;
+        // power = -power;
+        // steer -= 255;
+        // steer /= 2;
         
-        //PID stuff will go here
+        // //PID stuff will go here
         
-        //add steering
-        l = power + steer;
-        r = power - steer;
-        bool lDir = l>0;
-        bool rDir = r>0;
-        l = abs(l);
-        r = abs(r);
+        // //add steering
+        // l = power + steer;
+        // r = power - steer;
+        // bool lDir = l>0;
+        // bool rDir = r>0;
+        // l = abs(l);
+        // r = abs(r);
         
  
-        lMotor.drive(min(l, 255), lDir);
-        rMotor.drive(min(r,255), rDir);
-        break;
+        // lMotor.drive(min(l, 255), lDir);
+        // rMotor.drive(min(r,255), rDir);
+        // break;
       }
       case 'P':
         timeOut.reset();
@@ -122,10 +125,13 @@ void loop(){
       }
     }
   }
-  // if(timeOut.hasTimedOut()){
-  //   stopAll();
-  //   waitForEnable();
-  // }
+  if(pidMain.Compute()){ //update outputs based on pid, timed by PID lib
+
+  }
+  if(timeOut.hasTimedOut()){
+    stopAll();
+    waitForEnable();
+  }
 }
 void waitForEnable(){
   bool en = true;
