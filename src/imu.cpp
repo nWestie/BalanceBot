@@ -14,7 +14,8 @@ void IMU::setOffsets(const int TheOffsets[6])
   } // SetOffsets
 
 
-void IMU::setup() {
+void IMU::setup(double* out) {
+    pOut = out; //address to write pitch to
     DPRINTLN("Test debug print in imucpp");
     // join I2C bus (I2Cdev library doesn't do this automatically)
     Wire.begin();
@@ -46,10 +47,7 @@ void IMU::setup() {
         mpu.setDMPEnabled(true);
 
         // enable Arduino interrupt detection
-        DPRINT(F("Enabling interrupt detection (Arduino external interrupt "));
-        DPRINT(digitalPinToInterrupt(INTERRUPT_PIN));
-        DPRINTLN(F(")..."));
-        //attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), dmpDataReady, RISING);
+        attachInterrupt(digitalPinToInterrupt(22), dmpDataReady, RISING);
         mpuIntStatus = mpu.getIntStatus();
 
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
@@ -69,21 +67,15 @@ void IMU::setup() {
     }
 }
 
-bool IMU::update(float* out) { //returns true if valid packet is found
+bool IMU::update() { //returns true if valid packet is found
     // read a packet from FIFO
     if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // Get the Latest packet 
         // display Euler angles in degrees
         mpu.dmpGetQuaternion(&q, fifoBuffer);
         mpu.dmpGetGravity(&gravity, &q);
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-       
-        out[0] = ypr[0] ;
-        out[1] = ypr[1] ;
-        out[2] = ypr[2] ;
+        *pOut = ypr[1]*57.2957795131;
         return true;
     }
     return false;
-}
-float IMU::toDeg(float rad){
-    return rad * 57.2957795131;
 }

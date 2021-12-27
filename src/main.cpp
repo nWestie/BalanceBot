@@ -18,7 +18,7 @@ float ypr[3];
 
 #define LEDPIN 13
 
-SoftTimer joyInpTimer, battRefreshTimer, timeOut;
+SoftTimer battRefreshTimer, timeOut;
 
 class Motor{
 private:
@@ -38,8 +38,7 @@ public:
 };
 Motor lMotor(17, 15, 7, 8); //pwm, dir, enc1, enc2
 Motor rMotor(16, 14, 5, 6);
-int power, steer;
-
+int steer;
 void stopAll(){
   lMotor.drive(0,1);
   rMotor.drive(0,1);
@@ -47,8 +46,12 @@ void stopAll(){
 void waitForEnable();
 void checkBattSend();
 
-double pidInp =0 , pidOut = 0, pidSet = 0;
-PID pidMain(&pidInp, &pidOut, &pidSet, 5.0, 0, 0, REVERSE);
+//pitchDeg: degrees pitch, output from imu, input to pid
+double pitchDeg = 0 , pitchSet = 0;
+double power;
+double kp = 5, ki = 0, kd = 0;
+PID pidMain(&pitchDeg, &power, &pitchSet, kp, ki, kd, REVERSE);
+
 void setup(){
   for(byte i = 5; i < 9; i++) pinMode(i, INPUT);
   for(byte i = 14; i < 18; i++) pinMode(i, OUTPUT);
@@ -56,20 +59,20 @@ void setup(){
   Serial.begin(9600);
   Serial2.begin(9600);
 
-  joyInpTimer.setTimeOutTime(50);
-  joyInpTimer.reset();
   battRefreshTimer.setTimeOutTime(200);
   battRefreshTimer.reset();
   timeOut.setTimeOutTime(400);
   timeOut.reset();
   
+  pidMain.SetOutputLimits(-255, 255);
+
   Serial2.print("*T\n\n\n\n\nPress Power to Initialize\n IMU and Enable Motors\n*");  
   digitalWrite(LEDPIN, HIGH);
 
   waitForEnable();
 
   Serial2.print("*T\nSetting Up IMU\n*");  
-  // imu.setup();
+  imu.setup(&pitchDeg);
   Serial2.print("*TIMU Setup Successful\n*");  
 }
 int l;
@@ -77,56 +80,74 @@ int r;
 
 void loop(){
   checkBattSend();
-
-  if(joyInpTimer.hasTimedOut()){
-    joyInpTimer.reset(); 
-    while(Serial2.available()){
-      char sw;
-      sw = Serial2.read(); //read ID
-      //switch based on which slider its from
-      switch(sw){
-      case 'J': {
-        while(true){
-          if (Serial2.available()){
-            char inp = Serial2.read();  //Get next character 
-            if(inp=='X') steer = Serial2.parseInt();
-            if(inp=='Y') power =Serial2.parseInt();
-            if(inp=='/') break; // End character
-          }
+  if(mpuInterrupt){
+    imu.update(); //updates value of pitchDeg on interrupt
+  }
+  if(Serial2.available()){
+    char sw;
+    int mPow;
+    sw = Serial2.read(); //read ID
+    //switch based on which slider its from
+    switch(sw){
+    case 'J': {
+      while(true){
+        if (Serial2.available()){
+          char inp = Serial2.read();  //Get next character 
+          if(inp=='X') steer = Serial2.parseInt();
+          if(inp=='Y') mPow =Serial2.parseInt();
+          if(inp=='/') break; // End character
         }
-
-        // power -= 255;
-        // power = -power;
-        // steer -= 255;
-        // steer /= 2;
-        
-        // //PID stuff will go here
-        
-        // //add steering
-        // l = power + steer;
-        // r = power - steer;
-        // bool lDir = l>0;
-        // bool rDir = r>0;
-        // l = abs(l);
-        // r = abs(r);
-        
- 
-        // lMotor.drive(min(l, 255), lDir);
-        // rMotor.drive(min(r,255), rDir);
-        // break;
+        mPow -= 255;
+        mPow = -mPow;
+        steer -= 255;
+        steer /= 2;
+        pitchSet = mPow / 32; //conversion to setpoint, just a variable +- 8 deg for now
+      }     
+    }
+    case 'P':
+      timeOut.reset();
+      break;
+    case 'p':
+      stopAll();
+      waitForEnable();
+      break;
+    case 'M': //terminal commands
+      while(true){
+        char sw = Serial2.read();
+        sw&0xDF; //to uppercase
+        if(!isUpperCase(sw))break;
+        float newVal = Serial2.parseFloat();
+        switch (sw){
+        case 'P':
+          kp = newVal;
+          break;
+        case 'I':
+          ki = newVal;
+          break;
+        case 'D':
+          kd = newVal;
+          break;
+        }
       }
-      case 'P':
-        timeOut.reset();
-        break;
-      case 'p':
-        stopAll();
-        waitForEnable();
-        break;
-      }
+      Serial2.print("*tPID: ");
+      Serial2.print(kp);
+      Serial2.print(ki);
+      Serial2.print(kd);
+      Serial.print("\n*");
     }
   }
   if(pidMain.Compute()){ //update outputs based on pid, timed by PID lib
-
+    
+    //add steering
+    l = power; // + steer;
+    r = power; //- steer;
+    bool lDir = l>0;
+    bool rDir = r>0;
+    l = abs(l);
+    r = abs(r);
+    //send motor commands
+    lMotor.drive(min(l, 255), lDir);
+    rMotor.drive(min(r,255), rDir);
   }
   if(timeOut.hasTimedOut()){
     stopAll();

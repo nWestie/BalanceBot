@@ -6,7 +6,10 @@
 #include "Wire.h"
 
 
-void dmpDataReady();// {mpuInterrupt = true;}
+volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
+void dmpDataReady() {
+    mpuInterrupt = true;
+}
 class IMU{
 private:
     MPU6050 mpu;
@@ -31,7 +34,7 @@ private:
     VectorFloat gravity;    // [x, y, z]            gravity vector
     float euler[3];         // [psi, theta, phi]    Euler angle container
     float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
-
+    double* pOut;
     // packet structure for InvenSense teapot demo
     uint8_t teapotPacket[14] = { '$', 0x02, 0,0, 0,0, 0,0, 0,0, 0x00, 0x00, '\r', '\n' };
 
@@ -42,9 +45,8 @@ private:
     // ================================================================
 public:
     
-    void setup();
-    bool update(float*);
+    void setup(double*);
+    bool update();
     void setOffsets(const int[6]);
-    static float toDeg(float);
 };
 #endif
