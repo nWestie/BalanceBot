@@ -6,10 +6,7 @@
 #include "Wire.h"
 
 
-volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
-void dmpDataReady() {
-    mpuInterrupt = true;
-}
+
 class IMU{
 private:
     MPU6050 mpu;

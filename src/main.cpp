@@ -16,7 +16,7 @@ float battVolt;
 IMU imu;
 float ypr[3];
 
-#define LEDPIN 13
+#define LEDPIN 21
 
 SoftTimer battRefreshTimer, timeOut;
 
@@ -39,17 +39,25 @@ public:
 Motor lMotor(17, 15, 7, 8); //pwm, dir, enc1, enc2
 Motor rMotor(16, 14, 5, 6);
 int steer;
+
+volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
+void dmpDataReady() {
+    mpuInterrupt = true;
+}
+
 void stopAll(){
   lMotor.drive(0,1);
   rMotor.drive(0,1);
 }
-void waitForEnable();
+void waitForEnable(String message);
 void checkBattSend();
+void checkInput();
 
 //pitchDeg: degrees pitch, output from imu, input to pid
-double pitchDeg = 0 , pitchSet = 0;
+double pitchDeg = 0 , pitchSet = 90;
 double power;
-double kp = 5, ki = 0, kd = 0;
+
+double kp = 8, ki = 5, kd = .2;
 PID pidMain(&pitchDeg, &power, &pitchSet, kp, ki, kd, REVERSE);
 
 void setup(){
@@ -65,15 +73,21 @@ void setup(){
   timeOut.reset();
   
   pidMain.SetOutputLimits(-255, 255);
+  
+  attachInterrupt(digitalPinToInterrupt(22), dmpDataReady, RISING);
 
-  Serial2.print("*T\n\n\n\n\nPress Power to Initialize\n IMU and Enable Motors\n*");  
   digitalWrite(LEDPIN, HIGH);
 
-  waitForEnable();
+  for(int i = 0; i < 7; i++) battSmooth[i] = analogRead(BTPIN);
 
+ 
   Serial2.print("*T\nSetting Up IMU\n*");  
   imu.setup(&pitchDeg);
-  Serial2.print("*TIMU Setup Successful\n*");  
+  Serial2.print("*TIMU Setup Successful\n*"); 
+  pidMain.SetMode(AUTOMATIC);
+  Serial2.print("*TPID Controller Started\n*"); 
+  Serial2.print("*TPress Power to Enable\n*"); 
+  waitForEnable("");
 }
 int l;
 int r;
@@ -83,61 +97,16 @@ void loop(){
   if(mpuInterrupt){
     imu.update(); //updates value of pitchDeg on interrupt
   }
-  if(Serial2.available()){
-    char sw;
-    int mPow;
-    sw = Serial2.read(); //read ID
-    //switch based on which slider its from
-    switch(sw){
-    case 'J': {
-      while(true){
-        if (Serial2.available()){
-          char inp = Serial2.read();  //Get next character 
-          if(inp=='X') steer = Serial2.parseInt();
-          if(inp=='Y') mPow =Serial2.parseInt();
-          if(inp=='/') break; // End character
-        }
-        mPow -= 255;
-        mPow = -mPow;
-        steer -= 255;
-        steer /= 2;
-        pitchSet = mPow / 32; //conversion to setpoint, just a variable +- 8 deg for now
-      }     
-    }
-    case 'P':
-      timeOut.reset();
-      break;
-    case 'p':
-      stopAll();
-      waitForEnable();
-      break;
-    case 'M': //terminal commands
-      while(true){
-        char sw = Serial2.read();
-        sw&0xDF; //to uppercase
-        if(!isUpperCase(sw))break;
-        float newVal = Serial2.parseFloat();
-        switch (sw){
-        case 'P':
-          kp = newVal;
-          break;
-        case 'I':
-          ki = newVal;
-          break;
-        case 'D':
-          kd = newVal;
-          break;
-        }
-      }
-      Serial2.print("*tPID: ");
-      Serial2.print(kp);
-      Serial2.print(ki);
-      Serial2.print(kd);
-      Serial.print("\n*");
-    }
-  }
+  checkInput();  
+
   if(pidMain.Compute()){ //update outputs based on pid, timed by PID lib
-    
+    Serial.println("PID/output called");
+    Serial.print("Update control, Power: ");
+    Serial.print(power);
+    Serial.print("Setpoint: ");
+    Serial.print(pitchSet);
+    Serial.print("Angle: ");
+    Serial.println(pitchDeg);
     //add steering
     l = power; // + steer;
     r = power; //- steer;
@@ -151,23 +120,28 @@ void loop(){
   }
   if(timeOut.hasTimedOut()){
     stopAll();
-    waitForEnable();
+    Serial2.println("*TMissed Heartbeat\nPress power to reenable\n*");
+    waitForEnable("");
   }
 }
-void waitForEnable(){
+void waitForEnable(String message){
   bool en = true;
   unsigned long t = millis()+500;
   while(true){
     if(Serial2.read()=='P')break;
     checkBattSend();
+    checkInput();
     if(millis()>t){
       digitalWrite(LEDPIN, en);
       en = !en;
       t = millis()+500;
+      //if(message.length())Serial2.print("*T\n\n\n\n\n\n" + message + "\n*");  
     }
     delay(20);
   }
   digitalWrite(LEDPIN, LOW);
+  timeOut.reset();
+  Serial.println("Ending waitForEnable");
 };
 void checkBattSend(){
   if(battRefreshTimer.hasTimedOut()){
@@ -189,7 +163,66 @@ void checkBattSend(){
       if(battVolt <11.15){
       Serial2.print("*\nTLOW BATT\nStopping motors\n*");
       stopAll();
-      waitForEnable(); 
+      waitForEnable(""); 
       }  
   } 
 };
+void checkInput(){
+  if(!Serial2.available())return;
+  char sw;
+  sw = Serial2.read(); //read ID
+  //switch based on which slider its from
+  switch(sw){
+  case 'J': {
+    while(true){
+      if (Serial2.available()){
+        char inp = Serial2.read();  //Get next character 
+        if(inp=='X') {
+          steer = Serial2.parseInt();
+          steer -= 255;
+          steer /= 2;
+        }
+        if(inp=='Y'){
+          int mPow = Serial2.parseInt();
+          mPow -= 255;
+          mPow = -mPow;
+          pitchSet = 90+ (mPow / 64); //conversion to setpoint, just a variable +- 8 deg for now
+        }
+        if(inp=='/') break; // End character
+      }
+    }
+  }
+  case 'P':
+    timeOut.reset();
+    break;
+  case 'p':
+    stopAll();
+    waitForEnable("Press Power to reenable");
+    break;
+  case 'M': //terminal commands
+    while(true){
+      char sw = Serial2.read();
+      sw = sw&0xDF; //to uppercase
+      if(!isUpperCase(sw))break;
+      float newVal = Serial2.parseFloat();
+      switch (sw){
+      case 'P':
+        kp = newVal;
+        break;
+      case 'I':
+        ki = newVal;
+        break;
+      case 'D':
+        kd = newVal;
+        break;
+      }
+    }
+    Serial2.print("*t\nPID: ");
+    Serial2.print(kp);
+    Serial.print(", ");
+    Serial2.print(ki);
+    Serial.print(", ");
+    Serial2.print(kd);
+    Serial.print("\n*");
+  }
+}
