@@ -6,6 +6,8 @@
 #include "SoftTimers.h"
 #include <Stream.h>
 
+#define RPRINTLN(s) Serial2.print("*T");Serial2.print(s);Serial2.print("\n*")
+
 constexpr float BATTMULT = (3.3*12.9)/(3*1024);
 #define BTPIN 20
 #define BATSMOOTHSIZE 7
@@ -81,7 +83,7 @@ void setup(){
   for(int i = 0; i < 7; i++) battSmooth[i] = analogRead(BTPIN);
 
  
-  Serial2.print("*T\nSetting Up IMU\n*");  
+  RPRINTLN("\nSetting Up IMU");  
   imu.setup(&pitchDeg);
   Serial2.print("*TIMU Setup Successful\n*"); 
   pidMain.SetMode(AUTOMATIC);
@@ -120,12 +122,13 @@ void loop(){
   }
   if(timeOut.hasTimedOut()){
     stopAll();
-    Serial2.println("*TMissed Heartbeat\nPress power to reenable\n*");
+    RPRINTLN("Missed Heartbeat\nPress power to reenable");
     waitForEnable("");
   }
 }
 void waitForEnable(String message){
   bool en = true;
+  pidMain.SetMode(MANUAL);
   unsigned long t = millis()+500;
   while(true){
     if(Serial2.read()=='P')break;
@@ -141,6 +144,7 @@ void waitForEnable(String message){
   }
   digitalWrite(LEDPIN, LOW);
   timeOut.reset();
+  pidMain.SetMode(AUTOMATIC);
   Serial.println("Ending waitForEnable");
 };
 void checkBattSend(){
@@ -169,9 +173,10 @@ void checkBattSend(){
 };
 void checkInput(){
   if(!Serial2.available())return;
+  //switch based on which slider its from
   char sw;
   sw = Serial2.read(); //read ID
-  //switch based on which slider its from
+  // Serial.println(String(sw));
   switch(sw){
   case 'J': {
     while(true){
@@ -200,11 +205,16 @@ void checkInput(){
     waitForEnable("Press Power to reenable");
     break;
   case 'M': //terminal commands
+    Serial.println("rec cmd line");
     while(true){
       char sw = Serial2.read();
-      sw = sw&0xDF; //to uppercase
-      if(!isUpperCase(sw))break;
-      float newVal = Serial2.parseFloat();
+      sw = sw & 0xDF; //to uppercase
+      Serial.println(sw);
+      if(!isUpperCase(sw)){
+        RPRINTLN("Invalid Input");
+        break;
+      }
+      double newVal = Serial2.parseFloat();
       switch (sw){
       case 'P':
         kp = newVal;
@@ -217,12 +227,13 @@ void checkInput(){
         break;
       }
     }
+    pidMain.SetTunings(kp, ki, kd);
     Serial2.print("*t\nPID: ");
-    Serial2.print(kp);
-    Serial.print(", ");
-    Serial2.print(ki);
-    Serial.print(", ");
-    Serial2.print(kd);
-    Serial.print("\n*");
+    Serial2.print(pidMain.GetKd());
+    Serial2.print(", ");
+    Serial2.print(pidMain.GetKi());
+    Serial2.print(", ");
+    Serial2.print(pidMain.GetKp());
+    Serial2.print("\n*");
   }
 }
