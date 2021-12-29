@@ -102,13 +102,13 @@ void loop(){
   checkInput();  
 
   if(pidMain.Compute()){ //update outputs based on pid, timed by PID lib
-    Serial.println("PID/output called");
-    Serial.print("Update control, Power: ");
-    Serial.print(power);
-    Serial.print("Setpoint: ");
-    Serial.print(pitchSet);
-    Serial.print("Angle: ");
-    Serial.println(pitchDeg);
+    // Serial.println("PID/output called");
+    // Serial.print("Update control, Power: ");
+    // Serial.print(power);
+    // Serial.print("Setpoint: ");
+    // Serial.print(pitchSet);
+    // Serial.print("Angle: ");
+    // Serial.println(pitchDeg);
     //add steering
     l = power; // + steer;
     r = power; //- steer;
@@ -117,8 +117,8 @@ void loop(){
     l = abs(l);
     r = abs(r);
     //send motor commands
-    lMotor.drive(min(l, 255), lDir);
-    rMotor.drive(min(r,255), rDir);
+    // lMotor.drive(min(l, 255), lDir);
+    // rMotor.drive(min(r,255), rDir);
   }
   if(timeOut.hasTimedOut()){
     stopAll();
@@ -140,7 +140,7 @@ void waitForEnable(String message){
       t = millis()+500;
       //if(message.length())Serial2.print("*T\n\n\n\n\n\n" + message + "\n*");  
     }
-    delay(20);
+    //delay(20);
   }
   digitalWrite(LEDPIN, LOW);
   timeOut.reset();
@@ -172,68 +172,69 @@ void checkBattSend(){
   } 
 };
 void checkInput(){
-  if(!Serial2.available())return;
-  //switch based on which slider its from
-  char sw;
-  sw = Serial2.read(); //read ID
-  // Serial.println(String(sw));
-  switch(sw){
-  case 'J': {
-    while(true){
-      if (Serial2.available()){
-        char inp = Serial2.read();  //Get next character 
-        if(inp=='X') {
-          steer = Serial2.parseInt();
-          steer -= 255;
-          steer /= 2;
+  while(Serial2.available()){
+    //switch based on which slider its from
+    char sw;
+    sw = Serial2.read(); //read ID
+    Serial.print(sw);
+    switch(sw){
+    case 'X':
+      steer = Serial2.parseInt();
+      steer -= 255;
+      steer /= 2;
+      Serial.print("Steer");
+      break;
+    case 'Y':
+      int mPow = Serial2.parseInt();
+      mPow -= 255;
+      mPow = -mPow;
+      pitchSet = 90+ (mPow / 64); //conversion to setpoint, just a variable +- 8 deg for now
+      Serial.print("Power");
+      break;
+    case 'P':
+      timeOut.reset();
+      Serial.print("Heartbeat");
+      break;
+    case 'p':
+      Serial.print("kill");
+      stopAll();
+      waitForEnable("Press Power to reenable");
+      break;
+    case 'M': {//terminal commands
+      Serial.print("terminal");
+      while(true){
+        char sw = Serial2.read();
+        sw = sw & 0xDF; //to uppercase
+        Serial.print(String(sw));
+        if(!isUpperCase(sw)){
+          RPRINTLN("Invalid Input");
+          break;
         }
-        if(inp=='Y'){
-          int mPow = Serial2.parseInt();
-          mPow -= 255;
-          mPow = -mPow;
-          pitchSet = 90+ (mPow / 64); //conversion to setpoint, just a variable +- 8 deg for now
+        double newVal = Serial2.parseFloat();
+        switch (sw){
+        case 'P':
+          kp = newVal;
+          break;
+        case 'I':
+          ki = newVal;
+          break;
+        case 'D':
+          kd = newVal;
+          break;
         }
-        if(inp=='/') break; // End character
       }
+      pidMain.SetTunings(kp, ki, kd);
+      Serial2.print("*t\nPID: ");
+      Serial2.print(pidMain.GetKd());
+      Serial2.print(", ");
+      Serial2.print(pidMain.GetKi());
+      Serial2.print(", ");
+      Serial2.print(pidMain.GetKp());
+      Serial2.print("\n*");
+      break;
+      }
+    case '/':
+      break; // End character
     }
-  }
-  case 'P':
-    timeOut.reset();
-    break;
-  case 'p':
-    stopAll();
-    waitForEnable("Press Power to reenable");
-    break;
-  case 'M': //terminal commands
-    Serial.println("rec cmd line");
-    while(true){
-      char sw = Serial2.read();
-      sw = sw & 0xDF; //to uppercase
-      Serial.println(sw);
-      if(!isUpperCase(sw)){
-        RPRINTLN("Invalid Input");
-        break;
-      }
-      double newVal = Serial2.parseFloat();
-      switch (sw){
-      case 'P':
-        kp = newVal;
-        break;
-      case 'I':
-        ki = newVal;
-        break;
-      case 'D':
-        kd = newVal;
-        break;
-      }
-    }
-    pidMain.SetTunings(kp, ki, kd);
-    Serial2.print("*t\nPID: ");
-    Serial2.print(pidMain.GetKd());
-    Serial2.print(", ");
-    Serial2.print(pidMain.GetKi());
-    Serial2.print(", ");
-    Serial2.print(pidMain.GetKp());
-    Serial2.print("\n*");
   }
 }
