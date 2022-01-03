@@ -61,7 +61,7 @@ double pitchDeg = 0 , pitchSet = 90;
 double pitchInp, pitchOffset = 0; //pitch inp is from controller, pitchOffset is added to it and saved to pitchSet. Corrects for IMU error
 double power;
 
-double kp = 9, ki = 25, kd = .2;
+double kp = 12, ki = 42, kd = .4;
 PID pidMain(&pitchDeg, &power, &pitchSet, kp, ki, kd, REVERSE);
 
 void setup(){
@@ -77,7 +77,7 @@ void setup(){
   timeOut.reset();
   
   pidMain.SetOutputLimits(-255, 255);
-  pidMain.SetSampleTime(25);
+  pidMain.SetSampleTime(10);
   attachInterrupt(digitalPinToInterrupt(22), dmpDataReady, RISING);
 
   digitalWrite(LEDPIN, HIGH);
@@ -109,8 +109,8 @@ void loop(){
 
   if(pidMain.Compute()){ //update outputs based on pid, timed by PID lib
     //add steering
-    l = power; // + steer;
-    r = power; //- steer;
+    l = power + steer;
+    r = power - steer;
     bool lDir = l>0;
     bool rDir = r>0;
     l = abs(l);
@@ -165,10 +165,11 @@ void checkBattSend(){
       waitForEnable(); 
       }
 
-      Serial2.print("*Y");
-      Serial2.print(pitchDeg);  
-      Serial2.print("*X");
-      Serial2.print(pitchSet);
+      Serial2.print("*G");
+      Serial2.print(pitchSet);  
+      Serial2.print(",");
+      Serial2.print(pitchDeg);
+      Serial2.print("*");
         
   } 
 };
@@ -181,7 +182,7 @@ void checkInput(){
     case 'X':
       steer = Serial2.parseInt();
       steer -= 255;
-      steer /= 2;
+      steer /= 8;
       break;
     case 'Y':{
       int mPow = Serial2.parseInt();
@@ -198,11 +199,11 @@ void checkInput(){
       }else enable = true;
       break;
     case 'F':
-      pitchOffset += .1;
+      pitchOffset += .2;
       pitchSet = pitchInp+pitchOffset;
       break;
     case 'B':
-      pitchOffset -= .1;
+      pitchOffset -= .2;
       pitchSet = pitchInp+pitchOffset;
       break;
     case 'M': {//terminal commands
