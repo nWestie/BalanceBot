@@ -58,10 +58,10 @@ void checkInput();
 
 //pitchDeg: degrees pitch, output from imu, input to pid
 double pitchDeg = 0 , pitchSet = 90;
-double pitchInp, pitchOffet = 0; //pitch inp is from controller, pitchOffset is added to it and saved to pitchSet. Corrects for IMU error
+double pitchInp, pitchOffset = 0; //pitch inp is from controller, pitchOffset is added to it and saved to pitchSet. Corrects for IMU error
 double power;
 
-double kp = 3, ki = 25, kd = .2;
+double kp = 9, ki = 25, kd = .2;
 PID pidMain(&pitchDeg, &power, &pitchSet, kp, ki, kd, REVERSE);
 
 void setup(){
@@ -77,7 +77,7 @@ void setup(){
   timeOut.reset();
   
   pidMain.SetOutputLimits(-255, 255);
-  pidMain.SetSampleTime(50);
+  pidMain.SetSampleTime(25);
   attachInterrupt(digitalPinToInterrupt(22), dmpDataReady, RISING);
 
   digitalWrite(LEDPIN, HIGH);
@@ -119,12 +119,6 @@ void loop(){
     lMotor.drive(min(l, 255), lDir);
     rMotor.drive(min(r,255), rDir);
   }
-  // if(timeOut.hasTimedOut()){
-  //   stopAll();
-  //   RPRINTLN("Missed Heartbeat\nPress power to reenable");
-  //   //Serial.print("heartbeat Timeout");
-  //   waitForEnable();
-  // }
 }
 void waitForEnable(){
   RPRINTLN("Disabled");
@@ -169,7 +163,13 @@ void checkBattSend(){
       Serial2.print("*\nTLOW BATT\nStopping motors\n*");
       stopAll();
       waitForEnable(); 
-      }  
+      }
+
+      Serial2.print("*Y");
+      Serial2.print(pitchDeg);  
+      Serial2.print("*X");
+      Serial2.print(pitchSet);
+        
   } 
 };
 void checkInput(){
@@ -187,8 +187,8 @@ void checkInput(){
       int mPow = Serial2.parseInt();
       mPow -= 255;
       mPow = -mPow;
-      pitchInp = 90 + (mPow / 64); //conversion to setpoint, just a variable +- 8 deg for now
-      pitchSet = pitchInp+pitchOffet;
+      pitchInp = 90 + (mPow / 32); //conversion to setpoint, just a variable +- 8 deg for now
+      pitchSet = pitchInp+pitchOffset;
       break;
     }
     case 'S':
@@ -198,10 +198,12 @@ void checkInput(){
       }else enable = true;
       break;
     case 'F':
-      pitchOffet += .1;
+      pitchOffset += .1;
+      pitchSet = pitchInp+pitchOffset;
       break;
     case 'B':
-      pitchOffet -= .1;
+      pitchOffset -= .1;
+      pitchSet = pitchInp+pitchOffset;
       break;
     case 'M': {//terminal commands
       while(!Serial2.available());
