@@ -72,7 +72,7 @@ void setup(){
   Serial2.begin(38400);
 
   battRefreshTimer.setTimeOutTime(200);
-  battRefreshTimer.reset();pop
+  battRefreshTimer.reset();
   timeOut.setTimeOutTime(400);
   timeOut.reset();
   
