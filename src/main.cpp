@@ -93,8 +93,7 @@ void setup(){
   Serial2.print("*TPress Power to Enable\n*"); 
   waitForEnable();
 }
-int l;
-int r;
+int l, r;
 
 void loop(){
   checkBattSend();
@@ -109,8 +108,13 @@ void loop(){
 
   if(pidMain.Compute()){ //update outputs based on pid, timed by PID lib
     //add steering
-    l = power + steer;
-    r = power - steer;
+      l = power + steer;
+      r = power - steer;
+    // if(power>0){
+    // }else{
+    //   l = power - steer;
+    //   r = power + steer;
+    // }
     bool lDir = l>0;
     bool rDir = r>0;
     l = abs(l);
@@ -118,6 +122,11 @@ void loop(){
     //send motor commands
     lMotor.drive(min(l, 255), lDir);
     rMotor.drive(min(r,255), rDir);
+    // Serial2.print("*G");
+    // Serial2.print(pitchSet);  
+    // Serial2.print(",");
+    // Serial2.print(pitchDeg);
+    // Serial2.print("*");
   }
 }
 void waitForEnable(){
@@ -165,11 +174,7 @@ void checkBattSend(){
       waitForEnable(); 
       }
 
-      Serial2.print("*G");
-      Serial2.print(pitchSet);  
-      Serial2.print(",");
-      Serial2.print(pitchDeg);
-      Serial2.print("*");
+      
         
   } 
 };
