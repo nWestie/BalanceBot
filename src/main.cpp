@@ -58,12 +58,11 @@ void checkInput();
 
 //pitchDeg: degrees pitch, output from imu, input to pid
 double pitchDeg = 0 , pitchSet = 90;
-double pitchInp, pitchOffset = 0; //pitch inp is from controller, pitchOffset is added to it and saved to pitchSet. Corrects for IMU error
+double pitchInp = 90, pitchOffset = 0; //pitch inp is from controller, pitchOffset is added to it and saved to pitchSet. Corrects for IMU error
 double power;
 
-double kp = 12, ki = 42, kd = .4;
-PID pidMain(&pitchDeg, &power, &pitchSet, kp, ki, kd, REVERSE);
-
+double kpPitch = 7, kiPitch = 42, kdPitch = 0;
+PID pidPitch(&pitchDeg, &power, &pitchSet, kpPitch, kiPitch, kdPitch, REVERSE);
 void setup(){
   for(byte i = 5; i < 9; i++) pinMode(i, INPUT);
   for(byte i = 14; i < 18; i++) pinMode(i, OUTPUT);
@@ -76,8 +75,8 @@ void setup(){
   timeOut.setTimeOutTime(400);
   timeOut.reset();
   
-  pidMain.SetOutputLimits(-255, 255);
-  pidMain.SetSampleTime(10);
+  pidPitch.SetOutputLimits(-255, 255);
+  pidPitch.SetSampleTime(10);
   attachInterrupt(digitalPinToInterrupt(22), dmpDataReady, RISING);
 
   digitalWrite(LEDPIN, HIGH);
@@ -88,7 +87,7 @@ void setup(){
   RPRINTLN("\nSetting Up IMU");  
   imu.setup(&pitchDeg);
   Serial2.print("*TIMU Setup Successful\n*"); 
-  pidMain.SetMode(AUTOMATIC);
+  pidPitch.SetMode(AUTOMATIC);
   Serial2.print("*TPID Controller Started\n*"); 
   Serial2.print("*TPress Power to Enable\n*"); 
   waitForEnable();
@@ -106,15 +105,15 @@ void loop(){
   }
   checkInput();  
 
-  if(pidMain.Compute()){ //update outputs based on pid, timed by PID lib
+  if(pidPitch.Compute()){ //update outputs based on pid, timed by PID lib
     //add steering
+    if(pitchInp>90){//using joystick, not pid controller for if forward/backward
       l = power + steer;
       r = power - steer;
-    // if(power>0){
-    // }else{
-    //   l = power - steer;
-    //   r = power + steer;
-    // }
+    }else{
+      l = power - steer;
+      r = power + steer;
+    }
     bool lDir = l>0;
     bool rDir = r>0;
     l = abs(l);
@@ -122,21 +121,17 @@ void loop(){
     //send motor commands
     lMotor.drive(min(l, 255), lDir);
     rMotor.drive(min(r,255), rDir);
-    // Serial2.print("*G");
-    // Serial2.print(pitchSet);  
-    // Serial2.print(",");
-    // Serial2.print(pitchDeg);
-    // Serial2.print("*");
   }
 }
 void waitForEnable(){
   RPRINTLN("Disabled");
   enable = false;
   bool flash = true;
-  pidMain.SetMode(MANUAL);
+  pidPitch.SetMode(MANUAL);
   unsigned long t = millis()+500;
   while(true){
     if(enable)break;
+    if(mpuInterrupt) imu.update();
     checkBattSend();
     checkInput();
     if(millis()>t){
@@ -147,7 +142,7 @@ void waitForEnable(){
   }
   digitalWrite(LEDPIN, LOW);
   timeOut.reset();
-  pidMain.SetMode(AUTOMATIC);
+  pidPitch.SetMode(AUTOMATIC);
   RPRINTLN("Enabled");
   enable = true;
 };
@@ -174,8 +169,11 @@ void checkBattSend(){
       waitForEnable(); 
       }
 
-      
-        
+      Serial2.print("*G");
+      Serial2.print(pitchSet);  
+      Serial2.print(",");
+      Serial2.print(pitchDeg);
+      Serial2.print("*");
   } 
 };
 void checkInput(){
@@ -193,7 +191,7 @@ void checkInput(){
       int mPow = Serial2.parseInt();
       mPow -= 255;
       mPow = -mPow;
-      pitchInp = 90 + (mPow / 32); //conversion to setpoint, just a variable +- 8 deg for now
+      pitchInp = 90 + (mPow / 32); //conversion to setpoint
       pitchSet = pitchInp+pitchOffset;
       break;
     }
@@ -204,11 +202,11 @@ void checkInput(){
       }else enable = true;
       break;
     case 'F':
-      pitchOffset += .2;
+      pitchOffset += .1;
       pitchSet = pitchInp+pitchOffset;
       break;
     case 'B':
-      pitchOffset -= .2;
+      pitchOffset -= .1;
       pitchSet = pitchInp+pitchOffset;
       break;
     case 'M': {//terminal commands
@@ -220,22 +218,22 @@ void checkInput(){
       double newVal = Serial2.parseFloat();
       switch (sw){
       case 'P':
-        kp = newVal;
+        kpPitch = newVal;
         break;
       case 'I':
-        ki = newVal;
+        kiPitch = newVal;
         break;
       case 'D':
-        kd = newVal;
+        kdPitch = newVal;
         break;
       }
-      pidMain.SetTunings(kp, ki, kd);
+      pidPitch.SetTunings(kpPitch, kiPitch, kdPitch);
       Serial2.print("*TPID: ");
-      Serial2.print(pidMain.GetKp());
+      Serial2.print(pidPitch.GetKp());
       Serial2.print(", ");
-      Serial2.print(pidMain.GetKi());
+      Serial2.print(pidPitch.GetKi());
       Serial2.print(", ");
-      Serial2.print(pidMain.GetKd());
+      Serial2.print(pidPitch.GetKd());
       Serial2.print("\n*");
       break;
       }
