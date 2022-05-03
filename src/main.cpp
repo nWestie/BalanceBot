@@ -5,10 +5,14 @@
 #include "IMU.h"
 #include "SoftTimers.h"
 #include <Stream.h>
+#include <EEPROM.h>
 
-#define RPRINTLN(s) Serial2.print("*T");Serial2.print(s);Serial2.print("\n*")
+#define RPRINTLN(s)    \
+  Serial2.print("*T"); \
+  Serial2.print(s);    \
+  Serial2.print("\n*")
 bool enable = false;
-constexpr float BATTMULT = (3.3*12.9)/(3*1024);
+constexpr float BATTMULT = (3.3 * 12.9) / (3 * 1024);
 #define BTPIN 20
 #define BATSMOOTHSIZE 7
 float battSmooth[BATSMOOTHSIZE];
@@ -22,50 +26,60 @@ float ypr[3];
 
 SoftTimer battRefreshTimer, timeOut;
 
-class Motor{
+class Motor
+{
 private:
   byte dirPin, pwmPin;
+
 public:
-  Encoder enc = Encoder(0,0);
-  Motor(byte pwm, byte dir, uint8_t e1, uint8_t e2) {
-    dirPin = dir; 
+  Encoder enc = Encoder(0, 0);
+  Motor(byte pwm, byte dir, uint8_t e1, uint8_t e2)
+  {
+    dirPin = dir;
     pwmPin = pwm;
     enc = Encoder(e1, e2);
   }
-  void drive(byte pwm, byte dir){
+  void drive(byte pwm, byte dir)
+  {
     digitalWrite(dirPin, dir);
     analogWrite(pwmPin, pwm);
     return;
   }
 };
-Motor lMotor(17, 15, 7, 8); //pwm, dir, enc1, enc2
+Motor lMotor(17, 15, 7, 8); // pwm, dir, enc1, enc2
 Motor rMotor(16, 14, 5, 6);
 int steer;
-void stopAll(){
-  lMotor.drive(0,1);
-  rMotor.drive(0,1);
+void stopAll()
+{
+  lMotor.drive(0, 1);
+  rMotor.drive(0, 1);
 }
 
-volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
-void dmpDataReady() {
-    mpuInterrupt = true;
+volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has gone high
+void dmpDataReady()
+{
+  mpuInterrupt = true;
 }
-
+// Halts execution til restarted by controller
 void waitForEnable();
+//  
 void checkBattSend();
 void checkInput();
 
-
-//pitchDeg: degrees pitch, output from imu, input to pid
-double pitchDeg = 0 , pitchSet = 90;
-double pitchInp = 90, pitchOffset = 0; //pitch inp is from controller, pitchOffset is added to it and saved to pitchSet. Corrects for IMU error
+double pitchDeg = 0; // pitch in deg. From IMU, feedback for PID
+double pitchSet = 90; // Combined controller and trim inputs, inp to PID
+double pitchInp = 90; // input from controller
+double pitchTrim = 0; // Trim value added to pitchSet. Manual correction for IMU error
 double power;
 
-double kpPitch = 7, kiPitch = 42, kdPitch = 0;
+double kpPitch = 7, kiPitch = 42, kdPitch = .1;
 PID pidPitch(&pitchDeg, &power, &pitchSet, kpPitch, kiPitch, kdPitch, REVERSE);
-void setup(){
-  for(byte i = 5; i < 9; i++) pinMode(i, INPUT);
-  for(byte i = 14; i < 18; i++) pinMode(i, OUTPUT);
+void setup()
+{
+  for (byte i = 5; i < 9; i++)
+    pinMode(i, INPUT);
+  for (byte i = 14; i < 18; i++)
+    pinMode(i, OUTPUT);
   pinMode(LEDPIN, OUTPUT);
   Serial.begin(38400);
   Serial2.begin(38400);
@@ -74,6 +88,11 @@ void setup(){
   battRefreshTimer.reset();
   timeOut.setTimeOutTime(400);
   timeOut.reset();
+
+  kpPitch = EEPROM.read(1);
+  kiPitch = EEPROM.read(2);
+  kdPitch = EEPROM.read(3);
+  pidPitch.SetTunings(kpPitch, kiPitch, kdPitch);
   
   pidPitch.SetOutputLimits(-255, 255);
   pidPitch.SetSampleTime(10);
@@ -81,63 +100,75 @@ void setup(){
 
   digitalWrite(LEDPIN, HIGH);
 
-  for(int i = 0; i < 7; i++) battSmooth[i] = analogRead(BTPIN);
+  for (int i = 0; i < 7; i++)
+    battSmooth[i] = analogRead(BTPIN);
 
- 
-  RPRINTLN("\nSetting Up IMU");  
+  RPRINTLN("\nSetting Up IMU");
   imu.setup(&pitchDeg);
-  Serial2.print("*TIMU Setup Successful\n*"); 
+  Serial2.print("*TIMU Setup Successful\n*");
   pidPitch.SetMode(AUTOMATIC);
-  Serial2.print("*TPID Controller Started\n*"); 
-  Serial2.print("*TPress Power to Enable\n*"); 
+  Serial2.print("*TPID Controller Started\n*");
+  Serial2.print("*TPress Power to Enable\n*");
   waitForEnable();
 }
 int l, r;
 
-void loop(){
+void loop()
+{
   checkBattSend();
-  if(mpuInterrupt){
-    imu.update(); //updates value of pitchDeg on interrupt
-    if(pitchDeg<40||pitchDeg>130){
+  if (mpuInterrupt)
+  {
+    imu.update(); // updates value of pitchDeg on interrupt
+    if (pitchDeg < 40 || pitchDeg > 130)
+    {
       stopAll();
       waitForEnable();
     }
   }
-  checkInput();  
+  checkInput();
 
-  if(pidPitch.Compute()){ //update outputs based on pid, timed by PID lib
-    //add steering
-    if(pitchInp>90){//using joystick, not pid controller for if forward/backward
+  if (pidPitch.Compute())
+  { // update outputs based on pid, timed by PID lib
+    // add steering
+    if (pitchInp > 90)
+    { // using joystick, not pid controller for if forward/backward
       l = power + steer;
       r = power - steer;
-    }else{
+    }
+    else
+    {
       l = power - steer;
       r = power + steer;
     }
-    bool lDir = l>0;
-    bool rDir = r>0;
+    bool lDir = l > 0;
+    bool rDir = r > 0;
     l = abs(l);
     r = abs(r);
-    //send motor commands
+    // send motor commands
     lMotor.drive(min(l, 255), lDir);
-    rMotor.drive(min(r,255), rDir);
+    rMotor.drive(min(r, 255), rDir);
   }
 }
-void waitForEnable(){
+void waitForEnable()
+{
   RPRINTLN("Disabled");
   enable = false;
   bool flash = true;
   pidPitch.SetMode(MANUAL);
-  unsigned long t = millis()+500;
-  while(true){
-    if(enable)break;
-    if(mpuInterrupt) imu.update();
+  unsigned long t = millis() + 500;
+  while (true)
+  {
+    if (enable)
+      break;
+    if (mpuInterrupt)
+      imu.update();
     checkBattSend();
     checkInput();
-    if(millis()>t){
+    if (millis() > t)
+    {
       digitalWrite(LEDPIN, flash);
       flash = !flash;
-      t = millis()+500;
+      t = millis() + 500;
     }
   }
   digitalWrite(LEDPIN, LOW);
@@ -146,77 +177,92 @@ void waitForEnable(){
   RPRINTLN("Enabled");
   enable = true;
 };
-void checkBattSend(){
-  if(battRefreshTimer.hasTimedOut()){
-      battRefreshTimer.reset();
+void checkBattSend()
+{
+  if (battRefreshTimer.hasTimedOut())
+  {
+    battRefreshTimer.reset();
 
-      battSmooth[btInd] = analogRead(BTPIN)*BATTMULT;
-      btInd = (btInd + 1)%BATSMOOTHSIZE;
-      
-      battVolt=0;
-      for(int i = 0; i < BATSMOOTHSIZE; i++)battVolt+=battSmooth[i];
-      battVolt /= BATSMOOTHSIZE;
-      
-      Serial2.print("*V");
-      Serial2.print(battVolt);
-      Serial2.print("*");
-      Serial2.print("*C");
-      Serial2.print(battVolt);
-      Serial2.print("*");
-      if(battVolt <11.15){
+    battSmooth[btInd] = analogRead(BTPIN) * BATTMULT;
+    btInd = (btInd + 1) % BATSMOOTHSIZE;
+
+    battVolt = 0;
+    for (int i = 0; i < BATSMOOTHSIZE; i++)
+      battVolt += battSmooth[i];
+    battVolt /= BATSMOOTHSIZE;
+
+    Serial2.print("*V");
+    Serial2.print(battVolt);
+    Serial2.print("*");
+    Serial2.print("*C");
+    Serial2.print(battVolt);
+    Serial2.print("*");
+    if (battVolt < 11.15)
+    {
       Serial2.print("*\nTLOW BATT\nStopping motors\n*");
       stopAll();
-      waitForEnable(); 
-      }
+      waitForEnable();
+    }
 
-      Serial2.print("*G");
-      Serial2.print(pitchSet);  
-      Serial2.print(",");
-      Serial2.print(pitchDeg);
-      Serial2.print("*");
-  } 
+    Serial2.print("*G");
+    Serial2.print(pitchSet);
+    Serial2.print(",");
+    Serial2.print(pitchDeg);
+    Serial2.print("*");
+  }
 };
-void checkInput(){
-  while(Serial2.available()){
-    //switch based on which slider its from
+void checkInput()
+{
+  while (Serial2.available())
+  {
+    // switch based on which slider its from
     char sw;
-    sw = Serial2.read(); //read ID
-    switch(sw){
+    sw = Serial2.read(); // read ID
+    switch (sw)
+    {
     case 'X':
       steer = Serial2.parseInt();
       steer -= 255;
       steer /= 8;
       break;
-    case 'Y':{
+    case 'Y':
+    {
       int mPow = Serial2.parseInt();
       mPow -= 255;
       mPow = -mPow;
-      pitchInp = 90 + (mPow / 32); //conversion to setpoint
-      pitchSet = pitchInp+pitchOffset;
+      pitchInp = 90 + (mPow / 32); // conversion to setpoint
+      pitchSet = pitchInp + pitchTrim;
       break;
     }
     case 'S':
-      if(enable){
+      if (enable)
+      {
         stopAll();
         waitForEnable();
-      }else enable = true;
+      }
+      else
+        enable = true;
       break;
     case 'F':
-      pitchOffset += .1;
-      pitchSet = pitchInp+pitchOffset;
+      pitchTrim += .1;
+      pitchSet = pitchInp + pitchTrim;
       break;
     case 'B':
-      pitchOffset -= .1;
-      pitchSet = pitchInp+pitchOffset;
+      pitchTrim -= .1;
+      pitchSet = pitchInp + pitchTrim;
       break;
-    case 'M': {//terminal commands
-      while(!Serial2.available());
+    case 'M':
+    { // terminal commands
+      while (!Serial2.available())
+        ;
       char sw = Serial2.read();
-      if(isLowerCase(sw)){
+      if (isLowerCase(sw))
+      {
         sw -= 32;
       }
       double newVal = Serial2.parseFloat();
-      switch (sw){
+      switch (sw)
+      {
       case 'P':
         kpPitch = newVal;
         break;
@@ -226,6 +272,11 @@ void checkInput(){
       case 'D':
         kdPitch = newVal;
         break;
+      case 'S':
+        EEPROM.write(1,kpPitch);
+        EEPROM.write(2,kiPitch);
+        EEPROM.write(3,kdPitch);
+        Serial2.print("*TSaved *");
       }
       pidPitch.SetTunings(kpPitch, kiPitch, kdPitch);
       Serial2.print("*TPID: ");
@@ -236,7 +287,7 @@ void checkInput(){
       Serial2.print(pidPitch.GetKd());
       Serial2.print("\n*");
       break;
-      }
+    }
     case '/':
       break; // End character
     }
