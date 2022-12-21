@@ -11,7 +11,7 @@
   Serial2.print("*T"); \
   Serial2.print(s);    \
   Serial2.print("\n*")
-bool enable = false;
+
 constexpr float BATTMULT = (3.3 * 12.9) / (3 * 1024);
 #define BTPIN 20
 #define BATSMOOTHSIZE 7
@@ -21,6 +21,8 @@ float battVolt;
 
 IMU imu;
 float ypr[3];
+
+bool enable = false;
 
 #define LEDPIN 21
 
@@ -115,7 +117,6 @@ int l, r;
 
 void loop()
 {
-  checkBattSend();
   if (mpuInterrupt)
   {
     imu.update(); // updates value of pitchDeg on interrupt
@@ -125,7 +126,9 @@ void loop()
       waitForEnable();
     }
   }
-  checkInput();
+  
+  checkInput();  // get new inputs
+  checkBattSend(); // send data if needed
 
   if (pidPitch.Compute())
   { // update outputs based on pid, timed by PID lib
