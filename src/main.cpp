@@ -43,8 +43,8 @@ public:
   }
   void drive(byte pwm, byte dir)
   {
-    digitalWrite(dirPin, dir);
-    analogWrite(pwmPin, pwm);
+    // digitalWrite(dirPin, dir);       **DISABLED FOR BT TESTING**
+    // analogWrite(pwmPin, pwm);
     return;
   }
 };
@@ -65,7 +65,7 @@ void dmpDataReady()
 // Halts execution til restarted by controller
 void waitForEnable();
 //  
-void checkBattSend();
+void sendData();
 void checkInput();
 
 double pitchDeg = 0; // pitch in deg. From IMU, feedback for PID
@@ -126,20 +126,18 @@ void loop()
       waitForEnable();
     }
   }
-  
-  checkInput();  // get new inputs
-  checkBattSend(); // send data if needed
 
-  if (pidPitch.Compute())
-  { // update outputs based on pid, timed by PID lib
+  checkInput();  // get new inputs
+  sendData(); // send data if needed
+
+  if (pidPitch.Compute()){ 
+    // update outputs based on pid, timed by PID lib
     // add steering
-    if (pitchInp > 90)
-    { // using joystick, not pid controller for if forward/backward
+    if (pitchInp > 90){ // using joystick, not pid controller for if forward/backward
       l = power + steer;
       r = power - steer;
     }
-    else
-    {
+    else{
       l = power - steer;
       r = power + steer;
     }
@@ -152,23 +150,22 @@ void loop()
     rMotor.drive(min(r, 255), rDir);
   }
 }
-void waitForEnable()
-{
+void waitForEnable(){
   RPRINTLN("Disabled");
   enable = false;
   bool flash = true;
   pidPitch.SetMode(MANUAL);
   unsigned long t = millis() + 500;
-  while (true)
-  {
-    if (enable)
+  while (true){
+    if (enable){
       break;
-    if (mpuInterrupt)
+    }
+    if (mpuInterrupt){
       imu.update();
-    checkBattSend();
+    }
+    sendData();
     checkInput();
-    if (millis() > t)
-    {
+    if (millis() > t){
       digitalWrite(LEDPIN, flash);
       flash = !flash;
       t = millis() + 500;
@@ -180,10 +177,8 @@ void waitForEnable()
   RPRINTLN("Enabled");
   enable = true;
 };
-void checkBattSend()
-{
-  if (battRefreshTimer.hasTimedOut())
-  {
+void sendData(){
+  if (battRefreshTimer.hasTimedOut()){
     battRefreshTimer.reset();
 
     battSmooth[btInd] = analogRead(BTPIN) * BATTMULT;
@@ -194,12 +189,6 @@ void checkBattSend()
       battVolt += battSmooth[i];
     battVolt /= BATSMOOTHSIZE;
 
-    Serial2.print("*V");
-    Serial2.print(battVolt);
-    Serial2.print("*");
-    Serial2.print("*C");
-    Serial2.print(battVolt);
-    Serial2.print("*");
     if (battVolt < 11.15)
     {
       Serial2.print("*\nTLOW BATT\nStopping motors\n*");
@@ -207,22 +196,23 @@ void checkBattSend()
       waitForEnable();
     }
 
-    Serial2.print("*G");
+    Serial2.print("*V");
+    Serial2.print(battVolt);
+    Serial2.print("*");
+    Serial2.print(":");
+    Serial2.print(",");
     Serial2.print(pitchSet);
     Serial2.print(",");
     Serial2.print(pitchDeg);
-    Serial2.print("*");
+    Serial2.print(":");
   }
 };
-void checkInput()
-{
-  while (Serial2.available())
-  {
+void checkInput(){
+  while (Serial2.available()){
     // switch based on which slider its from
     char sw;
     sw = Serial2.read(); // read ID
-    switch (sw)
-    {
+    switch (sw){
     case 'X':
       steer = Serial2.parseInt();
       steer -= 255;
@@ -238,8 +228,7 @@ void checkInput()
       break;
     }
     case 'S':
-      if (enable)
-      {
+      if (enable){
         stopAll();
         waitForEnable();
       }
