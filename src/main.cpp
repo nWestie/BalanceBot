@@ -73,7 +73,7 @@ double power;
 double kPID[3] = {7, 42, .1};
 PID pidPitch(&pitchDeg, &power, &pitchSet, kPID[0], kPID[1], kPID[2], REVERSE);
 
-KivyBT bt(kPID);
+KivyBT bt(kPID, PIDupdate, PIDsave, enableBot);
 
 void setup()
 {
@@ -202,7 +202,13 @@ void sendData()
     bt.update(battVolt, pitchSet, pitchDeg);
   }
 };
-void checkInput()
-{
-  
-}
+//TODO: fill these
+void PIDupdate(){
+
+};
+void PIDsave(){
+
+};
+bool enableBot(){
+
+};

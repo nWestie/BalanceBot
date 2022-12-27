@@ -1,24 +1,25 @@
-#include <array>
-#include <string>
-#include "bt.h"
 #include "Arduino.h"
-KivyBT::KivyBT(double *kPID)
+#include "bt.h"
+KivyBT::KivyBT(double *kPID, void updatePID(), void savePID(), bool enable())
 {
-    Serial2.begin(38400);
-    enabled = false;
     receivedFlag = false;
+    btDataString = "";
+
     this->kPID = kPID;
+    this->PIDupdate = updatePID;
+    this->PIDsave = savePID;
+    this->enableBot = enable;
+    Serial2.begin(38400);
 }
 void KivyBT::update(double voltage, double setAngle, double measuredAngle)
 {
-    receiveData();
     Serial2.print("U");
     Serial2.print(voltage);
     Serial2.print(",");
     Serial2.print(setAngle);
     Serial2.print(",");
     Serial2.print(measuredAngle);
-    Serial2.print("/");
+    Serial2.print(EOMchar);
 }
 void KivyBT::sendPID()
 {
@@ -28,81 +29,62 @@ void KivyBT::sendPID()
     Serial2.print(kPID[1]);
     Serial2.print(",");
     Serial2.print(kPID[2]);
-    Serial2.print("/");
+    Serial2.print(EOMchar);
 };
-void KivyBT::receiveData()
+bool KivyBT::receiveData(BTData *recBTData) // TODO: will need SIGNIFICANT testing
 {
+    bool dataUpdated = false; // will only return true if new data is added to recBTData
+    bool PIDUpdated = false;  // only call PIDUpdate once when multiple PID vals change
+
     int bytes = Serial2.available();
-    while (Serial2.available())
+    char newData[bytes];
+    Serial2.readBytes(newData, bytes);
+    btDataString.concat(newData);
+
+    uint8_t endChar = btDataString.indexOf(EOMchar);
+    while (endChar != -1)
     {
-        // switch based on which slider its from
-        char sw;
-        sw = Serial2.read(); // read ID
-        switch (sw)
+        String packet = btDataString.substring(0, endChar);
+        btDataString = btDataString.substring(endChar + 1);
+        if (!isAlpha(packet[0]))
         {
-        case 'X':
-            steer = Serial2.parseInt();
-            steer -= 255;
-            steer /= 8;
-            break;
-        case 'Y':
-        {
-            int mPow = Serial2.parseInt();
-            mPow -= 255;
-            mPow = -mPow;
-            pitchInp = 90 + (mPow / 32); // conversion to setpoint
-            pitchSet = pitchInp + pitchTrim;
-            break;
+            endChar = btDataString.indexOf(EOMchar);
+            continue;
         }
+        dataUpdated = true;
+        switch (packet[0])
+        {
+        case 'U':
+            recBTData->speed = packet.substring(1).toInt();
+            recBTData->turn = packet.substring(packet.indexOf(',') + 1).toInt();
+            break;
+        case 'E':
+            this->enableBot();
+            break;
         case 'S':
-            if (enable)
-            {
-                stopAll();
-                waitForEnable();
-            }
-            else
-                enable = true;
+            this->PIDsave();
             break;
-        case 'F':
-            pitchTrim += .1;
-            pitchSet = pitchInp + pitchTrim;
+        case 'T':
+            recBTData->trim = packet.substring(1).toInt();
             break;
-        case 'B':
-            pitchTrim -= .1;
-            pitchSet = pitchInp + pitchTrim;
+        case 'P':
+            recBTData->p = packet.substring(1).toInt();
+            PIDUpdated = true;
             break;
-        case 'M':
-        { // terminal commands
-            while (!Serial2.available())
-                ;
-            char sw = Serial2.read();
-            if (isLowerCase(sw))
-            {
-                sw -= 32;
-            }
-            double newVal = Serial2.parseFloat();
-            switch (sw)
-            {
-            case 'P':
-                kPID[0] = newVal;
-                break;
-            case 'I':
-                kPID[1] = newVal;
-                break;
-            case 'D':
-                kPID[2] = newVal;
-                break;
-            }
-        }
-        case '/':
-            break; // End character
+        case 'I':
+            recBTData->i = packet.substring(1).toInt();
+            PIDUpdated = true;
+            break;
+        case 'D':
+            recBTData->d = packet.substring(1).toInt();
+            PIDUpdated = true;
+            break;
         }
     }
-}
-bool KivyBT::botEnabled()
-{
-    return enabled;
-}
+    if (PIDUpdated)
+        this->PIDupdate();
+    return dataUpdated;
+};
 void KivyBT::print(char *str)
 {
     Serial2.print("M");
