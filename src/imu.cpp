@@ -14,10 +14,11 @@ void IMU::setOffsets(const int TheOffsets[6])
     mpu.setZGyroOffset(TheOffsets[5]);
 } // SetOffsets
 
-void IMU::setup(double *out)
+// Set up the IMU. recieves the double to store pitch output into. 
+void IMU::setup(double *pitchOutput)
 {
-    pOut = out; // address to write pitch to
-    DPRINTLN("Test debug print in imucpp");
+
+    pOut = pitchOutput; // address to write pitch to
     // join I2C bus (I2Cdev library doesn't do this automatically)
     Wire.begin();
     Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties

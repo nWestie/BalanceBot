@@ -8,21 +8,57 @@
 #include <EEPROM.h>
 #include "bt.h"
 
-constexpr float BATTMULT = (3.3 * 12.9) / (3 * 1024);
-#define BTPIN 20
-#define BATSMOOTHSIZE 7
-float battSmooth[BATSMOOTHSIZE];
-byte btInd = 0;
-float battVolt;
-
 IMU imu;
 float ypr[3];
+volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has gone high
 
-bool enable = false;
+void dmpDataReady()
+{
+  mpuInterrupt = true;
+}
 
 #define LEDPIN 21
 
-SoftTimer dataSendTimer, timeOut;
+SoftTimer dataSendTimer; // sends BT data at 5Hz
+
+class Battery
+{
+public:
+  Battery(uint8_t pin, void lowBattFunc(char *str))
+  {
+    this->pin = pin;
+    this->lowBattFunc = lowBattFunc;
+
+    btInd = 0;
+    battSmooth[0] = analogRead(pin) * battMult;
+    for (int i = 1; i < 8; i++)
+      battSmooth[i] = battSmooth[0];
+  };
+  double updateVoltage()
+  {
+    battSmooth[btInd] = analogRead(pin) * battMult;
+    btInd++;
+    btInd &= 0x07; // loops over above index 7 ('overflows')
+
+    float battVoltAvg = 0;
+    for (int i = 0; i < 8; i++)
+      battVoltAvg += battSmooth[i];
+    battVoltAvg /= 8;
+
+    if (battVoltAvg < 11.18) //~20%
+      lowBattFunc("LOW BATT");
+
+    return battVoltAvg;
+  };
+
+private:
+  const float battMult = (3.3 * 12.9) / (3 * 1024);
+  uint8_t pin;
+  float battSmooth[8];
+  uint8_t btInd;
+  void (*lowBattFunc)(char *str);
+};
+Battery batt(20, waitForEnable);
 
 class Motor
 {
@@ -46,34 +82,26 @@ public:
 };
 Motor lMotor(17, 15, 7, 8); // pwm, dir, enc1, enc2
 Motor rMotor(16, 14, 5, 6);
-int steer;
 void stopAll()
 {
   lMotor.drive(0, 1);
   rMotor.drive(0, 1);
 }
 
-volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has gone high
-void dmpDataReady()
-{
-  mpuInterrupt = true;
-}
 // Halts execution til restarted by controller
 void waitForEnable();
-//
-void sendData();
-void checkInput();
 
 double pitchDeg = 0;  // pitch in deg. From IMU, feedback for PID
 double pitchSet = 90; // Combined controller and trim inputs, inp to PID
-double pitchInp = 90; // input from controller
-double pitchTrim = 0; // Trim value added to pitchSet. Manual correction for IMU error
-double power;
+// double pitchInp = 90; // input from controller
+// double pitchTrim = 0; // Trim value added to pitchSet. Manual correction for IMU error
 
 double kPID[3] = {7, 42, .1};
-PID pidPitch(&pitchDeg, &power, &pitchSet, kPID[0], kPID[1], kPID[2], REVERSE);
+double power = 0;
+PID pidControl(&pitchDeg, &power, &pitchSet, kPID[0], kPID[1], kPID[2], REVERSE);
 
-KivyBT bt(kPID, PIDupdate, PIDsave, enableBot);
+KivyBT bt(kPID, PIDupdate, PIDsave);
+BTData btData = {0, 0, 0, false};
 
 void setup()
 {
@@ -82,66 +110,77 @@ void setup()
   for (byte i = 14; i < 18; i++)
     pinMode(i, OUTPUT);
   pinMode(LEDPIN, OUTPUT);
+
   Serial.begin(38400);
 
   dataSendTimer.setTimeOutTime(200);
   dataSendTimer.reset();
-  timeOut.setTimeOutTime(400);
-  timeOut.reset();
 
   kPID[0] = EEPROM.read(1);
   kPID[1] = EEPROM.read(2);
   kPID[2] = EEPROM.read(3);
-  pidPitch.SetTunings(kPID[0], kPID[1], kPID[2]);
+  pidControl.SetTunings(kPID[0], kPID[1], kPID[2]);
 
-  pidPitch.SetOutputLimits(-255, 255);
-  pidPitch.SetSampleTime(10);
+  pidControl.SetOutputLimits(-255, 255);
+  pidControl.SetSampleTime(10);
+
   attachInterrupt(digitalPinToInterrupt(22), dmpDataReady, RISING);
 
   digitalWrite(LEDPIN, HIGH);
 
-  for (int i = 0; i < 7; i++)
-    battSmooth[i] = analogRead(BTPIN);
-
-  bt.print("\nSetting Up IMU");
+  bt.print("\nInitializing IMU");
   imu.setup(&pitchDeg);
   bt.print("IMU Setup Successful\n");
-  pidPitch.SetMode(AUTOMATIC);
-  bt.print("PID Controller Started\n");
   bt.print("Press Power to Enable\n");
   waitForEnable();
 }
-int l, r;
+
+// data struct for recieved Bluetooth data
 
 void loop()
 {
+  // check IMU
   if (mpuInterrupt)
   {
-    imu.update(); // updates value of pitchDeg on interrupt
-    if (pitchDeg < 40 || pitchDeg > 130)
-    {
-      stopAll();
+    imu.update();                        // updates value of pitchDeg on interrupt
+    if (pitchDeg < 40 || pitchDeg > 130) // halts if robot tips over
       waitForEnable();
-    }
   }
 
-  checkInput(); // get new inputs
-  sendData();   // send data if needed
+  // recieve BT data
+  if (bt.receiveData(&btData))
+  {
+    if (!btData.enable)
+      waitForEnable("Disabled by Controller");
+    pitchSet = 90 + (-btData.speed / 32) + btData.trim;
+  }
 
-  if (pidPitch.Compute())
+  // send BT data
+  if (dataSendTimer.hasTimedOut())
+  {
+    dataSendTimer.reset();
+
+    double battVolt = batt.updateVoltage();
+    bt.update(battVolt, pitchSet, pitchDeg);
+  }
+
+  if (pidControl.Compute()) // updates at frequency given to PID controller
   {
     // update outputs based on pid, timed by PID lib
     // add steering
-    if (pitchInp > 90)
-    { // using joystick, not pid controller for if forward/backward
-      l = power + steer;
-      r = power - steer;
-    }
-    else
-    {
-      l = power - steer;
-      r = power + steer;
-    }
+    // if (pitchInp > 90)
+    // { // using joystick, not pid controller for if forward/backward
+    //   l = power + steer;
+    //   r = power - steer;
+    // }
+    // else
+    // {
+    //   l = power - steer;
+    //   r = power + steer;
+    // }
+    int l, r;
+    l = power;
+    r = power;
     bool lDir = l > 0;
     bool rDir = r > 0;
     l = abs(l);
@@ -151,64 +190,49 @@ void loop()
     rMotor.drive(min(r, 255), rDir);
   }
 }
-void waitForEnable()
+void waitForEnable(char *message)
 {
-  bt.print("Disabled");
-  enable = false;
+  bt.print("Disabled: ");
+  bt.print(message);
+  bt.print("\n");
+
+  stopAll();
+
+  pidControl.SetMode(MANUAL);
+
   bool flash = true;
-  pidPitch.SetMode(MANUAL);
-  unsigned long t = millis() + 500;
-  while (!enable)
+  unsigned long blinkTime = millis() + 500;
+  while (true)
   {
     if (mpuInterrupt)
     {
       imu.update();
     }
-    sendData();
-    checkInput();
-    if (millis() > t)
+    if (millis() > blinkTime)
     {
       digitalWrite(LEDPIN, flash);
       flash = !flash;
-      t = millis() + 500;
+      blinkTime = millis() + 500;
+    }
+    if (bt.receiveData(&btData))
+    {
+      if(btData.enable)
+        break;
     }
   }
   digitalWrite(LEDPIN, LOW);
-  timeOut.reset();
-  pidPitch.SetMode(AUTOMATIC);
+  pidControl.SetMode(AUTOMATIC);
   bt.print("Enabled");
-  enable = true;
 };
-void sendData()
+void waitForEnable()
 {
-  if (dataSendTimer.hasTimedOut())
-  {
-    dataSendTimer.reset();
+  waitForEnable("");
+}
 
-    battSmooth[btInd] = analogRead(BTPIN) * BATTMULT;
-    btInd = (btInd + 1) % BATSMOOTHSIZE;
-
-    battVolt = 0;
-    for (int i = 0; i < BATSMOOTHSIZE; i++)
-      battVolt += battSmooth[i];
-    battVolt /= BATSMOOTHSIZE;
-
-    if (battVolt < 11.15)
-    {
-      Serial2.print("*\nTLOW BATT\nStopping motors\n*");
-      stopAll();
-      waitForEnable();
-    }
-    bt.update(battVolt, pitchSet, pitchDeg);
-  }
-};
-//TODO: fill these
+// TODO: fill these
 void PIDupdate(){
 
 };
 void PIDsave(){
-
-};
-bool enableBot(){
 
 };

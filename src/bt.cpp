@@ -1,6 +1,6 @@
 #include "Arduino.h"
 #include "bt.h"
-KivyBT::KivyBT(double *kPID, void updatePID(), void savePID(), bool enable())
+KivyBT::KivyBT(double *kPID, void updatePID(), void savePID())
 {
     receivedFlag = false;
     btDataString = "";
@@ -8,7 +8,6 @@ KivyBT::KivyBT(double *kPID, void updatePID(), void savePID(), bool enable())
     this->kPID = kPID;
     this->PIDupdate = updatePID;
     this->PIDsave = savePID;
-    this->enableBot = enable;
     Serial2.begin(38400);
 }
 void KivyBT::update(double voltage, double setAngle, double measuredAngle)
@@ -59,7 +58,7 @@ bool KivyBT::receiveData(BTData *recBTData) // TODO: will need SIGNIFICANT testi
             recBTData->turn = packet.substring(packet.indexOf(',') + 1).toInt();
             break;
         case 'E':
-            this->enableBot();
+            recBTData->enable = !recBTData->enable;
             break;
         case 'S':
             this->PIDsave();
@@ -68,15 +67,15 @@ bool KivyBT::receiveData(BTData *recBTData) // TODO: will need SIGNIFICANT testi
             recBTData->trim = packet.substring(1).toInt();
             break;
         case 'P':
-            recBTData->p = packet.substring(1).toInt();
+            kPID[0] = packet.substring(1).toInt();
             PIDUpdated = true;
             break;
         case 'I':
-            recBTData->i = packet.substring(1).toInt();
+            kPID[1] = packet.substring(1).toInt();
             PIDUpdated = true;
             break;
         case 'D':
-            recBTData->d = packet.substring(1).toInt();
+            kPID[2] = packet.substring(1).toInt();
             PIDUpdated = true;
             break;
         }
