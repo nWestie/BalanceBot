@@ -84,7 +84,7 @@ bool KivyBT::receiveData(BTData *recBTData) // TODO: will need SIGNIFICANT testi
         this->PIDupdate();
     return dataUpdated;
 };
-void KivyBT::print(char *str)
+void KivyBT::print(String str)
 {
     Serial2.print("M");
     Serial2.print(str);

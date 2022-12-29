@@ -1,4 +1,5 @@
 // #define DEBUG
+
 #include "debug.h"
 #include "Encoder.h"
 #include "PID_v1.h"
@@ -7,6 +8,11 @@
 #include <Stream.h>
 #include <EEPROM.h>
 #include "bt.h"
+
+void waitForEnable(String);
+void waitForEnable();
+void PIDupdate();
+void PIDsave();
 
 IMU imu;
 float ypr[3];
@@ -24,7 +30,7 @@ SoftTimer dataSendTimer; // sends BT data at 5Hz
 class Battery
 {
 public:
-  Battery(uint8_t pin, void lowBattFunc(char *str))
+  Battery(uint8_t pin, void lowBattFunc(String str))
   {
     this->pin = pin;
     this->lowBattFunc = lowBattFunc;
@@ -56,7 +62,7 @@ private:
   uint8_t pin;
   float battSmooth[8];
   uint8_t btInd;
-  void (*lowBattFunc)(char *str);
+  void (*lowBattFunc)(String str);
 };
 Battery batt(20, waitForEnable);
 
@@ -112,7 +118,6 @@ void setup()
   pinMode(LEDPIN, OUTPUT);
 
   Serial.begin(38400);
-
   dataSendTimer.setTimeOutTime(200);
   dataSendTimer.reset();
 
@@ -120,9 +125,9 @@ void setup()
   kPID[1] = EEPROM.read(2);
   kPID[2] = EEPROM.read(3);
   pidControl.SetTunings(kPID[0], kPID[1], kPID[2]);
-
   pidControl.SetOutputLimits(-255, 255);
   pidControl.SetSampleTime(10);
+  bt.sendPID();
 
   attachInterrupt(digitalPinToInterrupt(22), dmpDataReady, RISING);
 
@@ -190,7 +195,7 @@ void loop()
     rMotor.drive(min(r, 255), rDir);
   }
 }
-void waitForEnable(char *message)
+void waitForEnable(String message)
 {
   bt.print("Disabled: ");
   bt.print(message);
@@ -229,10 +234,12 @@ void waitForEnable()
   waitForEnable("");
 }
 
-// TODO: fill these
 void PIDupdate(){
-
+  pidControl.SetTunings(kPID[0], kPID[1],kPID[2]);
 };
 void PIDsave(){
-
+  EEPROM.write(1,kPID[0]);
+  EEPROM.write(2,kPID[1]);
+  EEPROM.write(3,kPID[2]);
+  bt.print("PID Saved to EEPROM\n");
 };

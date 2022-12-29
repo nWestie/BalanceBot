@@ -18,7 +18,7 @@ public:
     // sends latest batt voltage, setAngle, and measured angle to controller for diagnostics
     virtual void update(double voltage, double setAngle, double measuredAngle) = 0;
     // prints a string to controller console
-    virtual void print(char *str) = 0;
+    virtual void print(String str) = 0;
     double *kPID; // updated
     double trim;
 };
@@ -31,7 +31,7 @@ public:
     // sends PID weights to controller
     void sendPID();
     // prints a string to controller console
-    void print(char *str);
+    void print(String str);
     /// gets any new data from the controller, updating the provided struct as nessisary.
     /// will call provided PIDUpdate and PIDsave as needed.
     bool receiveData(BTData *recBTData);
