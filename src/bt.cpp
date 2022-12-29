@@ -1,5 +1,9 @@
+// #define DEBUG
+
 #include "Arduino.h"
 #include "bt.h"
+#include "debug.h"
+
 KivyBT::KivyBT(double *kPID, void updatePID(), void savePID())
 {
     receivedFlag = false;
@@ -31,7 +35,8 @@ void KivyBT::sendPID()
     Serial2.print(EOMchar);
 };
 bool KivyBT::receiveData(BTData *recBTData) // TODO: will need SIGNIFICANT testing
-{
+{   
+    DPRINTLN("Enter receiveData");
     bool dataUpdated = false; // will only return true if new data is added to recBTData
     bool PIDUpdated = false;  // only call PIDUpdate once when multiple PID vals change
 
@@ -39,15 +44,21 @@ bool KivyBT::receiveData(BTData *recBTData) // TODO: will need SIGNIFICANT testi
     char newData[bytes];
     Serial2.readBytes(newData, bytes);
     btDataString.concat(newData);
+    DPRINT("BT Data recieved: len(");
+    DPRINT(bytes);
+    DPRINT("): ");
+    DPRINTLN(btDataString);
+    DPRINTLN("waiting...");
 
-    uint8_t endChar = btDataString.indexOf(EOMchar);
-    while (endChar != -1)
+    int endCharIndex = btDataString.indexOf(EOMchar);
+    DPRINTLN(endCharIndex);
+    while (endCharIndex != -1)
     {
-        String packet = btDataString.substring(0, endChar);
-        btDataString = btDataString.substring(endChar + 1);
+        String packet = btDataString.substring(0, endCharIndex);
+        btDataString = btDataString.substring(endCharIndex + 1);
         if (!isAlpha(packet[0]))
         {
-            endChar = btDataString.indexOf(EOMchar);
+            endCharIndex = btDataString.indexOf(EOMchar);
             continue;
         }
         dataUpdated = true;
@@ -80,6 +91,7 @@ bool KivyBT::receiveData(BTData *recBTData) // TODO: will need SIGNIFICANT testi
             break;
         }
     }
+    DPRINTLN("out of receiveData loop");
     if (PIDUpdated)
         this->PIDupdate();
     return dataUpdated;

@@ -1,4 +1,4 @@
-// #define DEBUG
+#define DEBUG
 
 #include "debug.h"
 #include "Encoder.h"
@@ -11,6 +11,7 @@
 
 void waitForEnable(String);
 void waitForEnable();
+void updateBT();
 void PIDupdate();
 void PIDsave();
 
@@ -111,13 +112,14 @@ BTData btData = {0, 0, 0, false};
 
 void setup()
 {
+  Serial.begin(38400);
+
   for (byte i = 5; i < 9; i++)
     pinMode(i, INPUT);
   for (byte i = 14; i < 18; i++)
     pinMode(i, OUTPUT);
   pinMode(LEDPIN, OUTPUT);
 
-  Serial.begin(38400);
   dataSendTimer.setTimeOutTime(200);
   dataSendTimer.reset();
 
@@ -137,6 +139,14 @@ void setup()
   imu.setup(&pitchDeg);
   bt.print("IMU Setup Successful\n");
   bt.print("Press Power to Enable\n");
+  IFD
+  {
+    while (Serial.read() == -1){
+      DPRINTLN("Waiting for Serial DBG");
+      delay(500);
+    }
+    DPRINTLN("___End of Setup____");
+  }
   waitForEnable();
 }
 
@@ -161,13 +171,7 @@ void loop()
   }
 
   // send BT data
-  if (dataSendTimer.hasTimedOut())
-  {
-    dataSendTimer.reset();
-
-    double battVolt = batt.updateVoltage();
-    bt.update(battVolt, pitchSet, pitchDeg);
-  }
+  updateBT();
 
   if (pidControl.Compute()) // updates at frequency given to PID controller
   {
@@ -221,9 +225,10 @@ void waitForEnable(String message)
     }
     if (bt.receiveData(&btData))
     {
-      if(btData.enable)
+      if (btData.enable)
         break;
     }
+    updateBT();
   }
   digitalWrite(LEDPIN, LOW);
   pidControl.SetMode(AUTOMATIC);
@@ -233,13 +238,23 @@ void waitForEnable()
 {
   waitForEnable("");
 }
+void updateBT(){
+  if (dataSendTimer.hasTimedOut())
+  {
+    dataSendTimer.reset();
 
-void PIDupdate(){
-  pidControl.SetTunings(kPID[0], kPID[1],kPID[2]);
+    double battVolt = batt.updateVoltage();
+    bt.update(battVolt, pitchSet, pitchDeg);
+  }
+}
+void PIDupdate()
+{
+  pidControl.SetTunings(kPID[0], kPID[1], kPID[2]);
 };
-void PIDsave(){
-  EEPROM.write(1,kPID[0]);
-  EEPROM.write(2,kPID[1]);
-  EEPROM.write(3,kPID[2]);
+void PIDsave()
+{
+  EEPROM.write(1, kPID[0]);
+  EEPROM.write(2, kPID[1]);
+  EEPROM.write(3, kPID[2]);
   bt.print("PID Saved to EEPROM\n");
 };
