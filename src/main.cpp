@@ -1,11 +1,10 @@
-#define DEBUG
+// #define DEBUG
 
 #include "debug.h"
 #include "Encoder.h"
 #include "PID_v1.h"
 #include "IMU.h"
 #include "SoftTimers.h"
-#include <Stream.h>
 #include <EEPROM.h>
 #include "bt.h"
 
@@ -120,7 +119,7 @@ void setup()
     pinMode(i, OUTPUT);
   pinMode(LEDPIN, OUTPUT);
 
-  dataSendTimer.setTimeOutTime(200);
+  dataSendTimer.setTimeOutTime(50);
   dataSendTimer.reset();
 
   kPID[0] = EEPROM.read(1);
@@ -128,7 +127,7 @@ void setup()
   kPID[2] = EEPROM.read(3);
   pidControl.SetTunings(kPID[0], kPID[1], kPID[2]);
   pidControl.SetOutputLimits(-255, 255);
-  pidControl.SetSampleTime(10);
+  pidControl.SetSampleTime(10); // in ms
   bt.sendPID();
 
   attachInterrupt(digitalPinToInterrupt(22), dmpDataReady, RISING);
@@ -141,7 +140,8 @@ void setup()
   bt.print("Press Power to Enable\n");
   IFD
   {
-    while (Serial.read() == -1){
+    while (Serial.read() == -1)
+    {
       DPRINTLN("Waiting for Serial DBG");
       delay(500);
     }
@@ -171,7 +171,7 @@ void loop()
   }
 
   // send BT data
-  updateBT();
+  updateBT(true);
 
   if (pidControl.Compute()) // updates at frequency given to PID controller
   {
@@ -228,7 +228,7 @@ void waitForEnable(String message)
       if (btData.enable)
         break;
     }
-    updateBT();
+    updateBT(false);
   }
   digitalWrite(LEDPIN, LOW);
   pidControl.SetMode(AUTOMATIC);
@@ -238,13 +238,13 @@ void waitForEnable()
 {
   waitForEnable("");
 }
-void updateBT(){
+void updateBT(bool isEnabled)
+{
   if (dataSendTimer.hasTimedOut())
   {
     dataSendTimer.reset();
-
     double battVolt = batt.updateVoltage();
-    bt.update(battVolt, pitchSet, pitchDeg);
+    bt.update(battVolt, pitchSet, pitchDeg, isEnabled);
   }
 }
 void PIDupdate()

@@ -14,7 +14,7 @@ KivyBT::KivyBT(double *kPID, void updatePID(), void savePID())
     this->PIDsave = savePID;
     Serial2.begin(38400);
 }
-void KivyBT::update(double voltage, double setAngle, double measuredAngle)
+void KivyBT::update(double voltage, double setAngle, double measuredAngle, double isEnabled)
 {
     Serial2.print("U");
     Serial2.print(voltage);
@@ -22,6 +22,8 @@ void KivyBT::update(double voltage, double setAngle, double measuredAngle)
     Serial2.print(setAngle);
     Serial2.print(",");
     Serial2.print(measuredAngle);
+    Serial2.print(",");
+    Serial2.print(isEnabled);
     Serial2.print(EOMchar);
 }
 void KivyBT::sendPID()
@@ -44,14 +46,13 @@ bool KivyBT::receiveData(BTData *recBTData) // TODO: will need SIGNIFICANT testi
     char newData[bytes];
     Serial2.readBytes(newData, bytes);
     btDataString.concat(newData);
-    DPRINT("BT Data recieved: len(");
-    DPRINT(bytes);
-    DPRINT("): ");
-    DPRINTLN(btDataString);
-    DPRINTLN("waiting...");
+    // DPRINT("BT Data recieved: len(");
+    // DPRINT(bytes);
+    // DPRINT("): ");
+    // DPRINTLN(btDataString);
+    // DPRINTLN("waiting...");
 
     int endCharIndex = btDataString.indexOf(EOMchar);
-    DPRINTLN(endCharIndex);
     while (endCharIndex != -1)
     {
         String packet = btDataString.substring(0, endCharIndex);
@@ -66,27 +67,22 @@ bool KivyBT::receiveData(BTData *recBTData) // TODO: will need SIGNIFICANT testi
         {
         case 'U':
             recBTData->speed = packet.substring(1).toInt();
-            recBTData->turn = packet.substring(packet.indexOf(',') + 1).toInt();
-            break;
-        case 'E':
-            recBTData->enable = !recBTData->enable;
+            packet = packet.substring(packet.indexOf(',')+1);
+            recBTData->turn = packet.toInt();
+            packet = packet.substring(packet.indexOf(',')+1);
+            recBTData->trim = packet.toFloat();
+            packet = packet.substring(packet.indexOf(',')+1);
+            recBTData->enable = packet.toInt();
             break;
         case 'S':
             this->PIDsave();
             break;
-        case 'T':
-            recBTData->trim = packet.substring(1).toInt();
-            break;
         case 'P':
-            kPID[0] = packet.substring(1).toInt();
-            PIDUpdated = true;
-            break;
-        case 'I':
-            kPID[1] = packet.substring(1).toInt();
-            PIDUpdated = true;
-            break;
-        case 'D':
-            kPID[2] = packet.substring(1).toInt();
+            kPID[0] = packet.substring(1).toFloat();
+            packet = packet.substring(packet.indexOf(',')+1);
+            kPID[1] = packet.substring(1).toFloat();
+            packet = packet.substring(packet.indexOf(',')+1);
+            kPID[2] = packet.substring(1).toFloat();
             PIDUpdated = true;
             break;
         }

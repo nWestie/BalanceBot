@@ -5,10 +5,10 @@
 #include <array>
 struct BTData
 {
-    double trim;  // setpoint trim in deg
+    double trim;   // setpoint trim in deg
     int16_t speed; // range -255 to 255
     int16_t turn;  // range -255 to 255
-    bool enable;  // false: signal calling code to disable/enable robot
+    bool enable;   // false: signal calling code to disable/enable robot
 };
 class BTInterface
 {
@@ -16,7 +16,7 @@ public:
     // sends PID weights to controller
     virtual void sendPID() = 0;
     // sends latest batt voltage, setAngle, and measured angle to controller for diagnostics
-    virtual void update(double voltage, double setAngle, double measuredAngle) = 0;
+    virtual void update(double voltage, double setAngle, double measuredAngle, double isEnabled) = 0;
     // prints a string to controller console
     virtual void print(String str) = 0;
     double *kPID; // updated
@@ -27,7 +27,7 @@ class KivyBT : public BTInterface
 public:
     KivyBT(double *kPID, void updatePID(), void savePID());
     // sends latest batt voltage, setAngle, and measured angle to controller for diagnostics
-    void update(double voltage, double setAngle, double measuredAngle);
+    void update(double voltage, double setAngle, double measuredAngle, double isEnabled);
     // sends PID weights to controller
     void sendPID();
     // prints a string to controller console
