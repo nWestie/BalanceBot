@@ -1,4 +1,4 @@
-// #define DEBUG
+#define DEBUG
 
 #include "debug.h"
 #include "Encoder.h"
@@ -232,22 +232,32 @@ void updateBT(bool isEnabled)
   if (btUpdateTimer.hasTimedOut())
   {
     btUpdateTimer.reset();
-    DPRINTLN("starting BT update");
 
     double battVolt = batt.updateVoltage(isEnabled);
     bt.sendUpdate(battVolt, pitchSet, pitchDeg, isEnabled);
 
     bt.receiveData(&btData);
     pitchSet = 90 + (-btData.speed / 32) + btData.trim;
-    DPRINTLN("exitBTUpdate");
   }
 }
 void PIDupdate()
 {
+  DPRINT("PUpdate: ");
+  DPRINT(kPID[0]);
+  DPRINT(",");
+  DPRINT(kPID[1]);
+  DPRINT(",");
+  DPRINTLN(kPID[2]);
   pidControl.SetTunings(kPID[0], kPID[1], kPID[2]);
 };
 void PIDsave()
 {
+  DPRINT("PSave: ");
+  DPRINT(kPID[0]);
+  DPRINT(",");
+  DPRINT(kPID[1]);
+  DPRINT(",");
+  DPRINTLN(kPID[2]);
   EEPROM.write(1, kPID[0]);
   EEPROM.write(2, kPID[1]);
   EEPROM.write(3, kPID[2]);
