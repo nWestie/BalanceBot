@@ -10,7 +10,7 @@
 
 void waitForEnable(String);
 void waitForEnable();
-void updateBT();
+void updateBT(bool isEnabled);
 void PIDupdate();
 void PIDsave();
 
@@ -25,7 +25,7 @@ void dmpDataReady()
 
 #define LEDPIN 21
 
-SoftTimer dataSendTimer; // sends BT data at 5Hz
+SoftTimer btUpdateTimer; // sends BT data at 20Hz
 
 class Battery
 {
@@ -40,7 +40,7 @@ public:
     for (int i = 1; i < 8; i++)
       battSmooth[i] = battSmooth[0];
   };
-  double updateVoltage()
+  double updateVoltage(bool isEnabled)
   {
     battSmooth[btInd] = analogRead(pin) * battMult;
     btInd++;
@@ -51,7 +51,7 @@ public:
       battVoltAvg += battSmooth[i];
     battVoltAvg /= 8;
 
-    if (battVoltAvg < 11.18) //~20%
+    if (isEnabled && battVoltAvg < 11.18) //~20%. Don't call if disabled, to prevent call stack overflow
       lowBattFunc("LOW BATT");
 
     return battVoltAvg;
@@ -119,8 +119,8 @@ void setup()
     pinMode(i, OUTPUT);
   pinMode(LEDPIN, OUTPUT);
 
-  dataSendTimer.setTimeOutTime(50);
-  dataSendTimer.reset();
+  btUpdateTimer.setTimeOutTime(50);
+  btUpdateTimer.reset();
 
   kPID[0] = EEPROM.read(1);
   kPID[1] = EEPROM.read(2);
@@ -150,8 +150,6 @@ void setup()
   waitForEnable();
 }
 
-// data struct for recieved Bluetooth data
-
 void loop()
 {
   // check IMU
@@ -162,16 +160,10 @@ void loop()
       waitForEnable();
   }
 
-  // recieve BT data
-  if (bt.receiveData(&btData))
-  {
-    if (!btData.enable)
-      waitForEnable("Disabled by Controller");
-    pitchSet = 90 + (-btData.speed / 32) + btData.trim;
-  }
-
   // send BT data
   updateBT(true);
+  if (!btData.enable)
+    waitForEnable("Disabled by Controller");
 
   if (pidControl.Compute()) // updates at frequency given to PID controller
   {
@@ -223,28 +215,31 @@ void waitForEnable(String message)
       flash = !flash;
       blinkTime = millis() + 500;
     }
-    if (bt.receiveData(&btData))
-    {
-      if (btData.enable)
-        break;
-    }
     updateBT(false);
+    if (btData.enable)
+      break;
   }
   digitalWrite(LEDPIN, LOW);
   pidControl.SetMode(AUTOMATIC);
   bt.print("Enabled");
-};
+}
 void waitForEnable()
 {
   waitForEnable("");
 }
 void updateBT(bool isEnabled)
 {
-  if (dataSendTimer.hasTimedOut())
+  if (btUpdateTimer.hasTimedOut())
   {
-    dataSendTimer.reset();
-    double battVolt = batt.updateVoltage();
-    bt.update(battVolt, pitchSet, pitchDeg, isEnabled);
+    btUpdateTimer.reset();
+    DPRINTLN("starting BT update");
+
+    double battVolt = batt.updateVoltage(isEnabled);
+    bt.sendUpdate(battVolt, pitchSet, pitchDeg, isEnabled);
+
+    bt.receiveData(&btData);
+    pitchSet = 90 + (-btData.speed / 32) + btData.trim;
+    DPRINTLN("exitBTUpdate");
   }
 }
 void PIDupdate()
