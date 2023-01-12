@@ -17,6 +17,8 @@ KivyBT::KivyBT(double *kPID, void updatePID(), void savePID())
 void KivyBT::sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled)
 {
     Serial2.print("U");
+    Serial2.print(millis());
+    Serial2.print(",");
     Serial2.print(voltage);
     Serial2.print(",");
     Serial2.print(setAngle);
@@ -29,6 +31,8 @@ void KivyBT::sendUpdate(double voltage, double setAngle, double measuredAngle, d
 void KivyBT::sendPID()
 {
     Serial2.print("P");
+    Serial2.print(millis());
+    Serial2.print(",");
     Serial2.print(kPID[0], 3);
     Serial2.print(",");
     Serial2.print(kPID[1], 3);
@@ -90,6 +94,7 @@ bool KivyBT::receiveData(BTData *recBTData) // TODO: will need SIGNIFICANT testi
             packet = packet.substring(packet.indexOf(',')+1);
             kPID[2] = packet.toFloat();
             this->PIDupdate();
+            sendPID();
             break;
         case 'R':
             sendPID();
