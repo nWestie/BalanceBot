@@ -1,4 +1,4 @@
-// #define DEBUG
+#define DEBUG
 
 #include "debug.h"
 #include "Encoder.h"
@@ -69,20 +69,18 @@ Battery batt(20, waitForEnable);
 class Motor
 {
 private:
-  byte dirPin, pwmPin;
+  const byte dirPin, pwmPin;
 
 public:
   Encoder enc = Encoder(0, 0);
-  Motor(byte pwm, byte dir, uint8_t e1, uint8_t e2)
+  Motor(byte pwm, byte dir, uint8_t e1, uint8_t e2) : dirPin(dir), pwmPin(pwm)
   {
-    dirPin = dir;
-    pwmPin = pwm;
     enc = Encoder(e1, e2);
   }
   void drive(byte pwm, byte dir)
   {
-    // digitalWrite(dirPin, dir);       **DISABLED FOR BT TESTING**
-    // analogWrite(pwmPin, pwm);
+    digitalWriteFast(dirPin, dir); 
+    analogWrite(pwmPin, pwm);
     return;
   }
 };
@@ -98,12 +96,10 @@ void stopAll()
 void waitForEnable();
 
 double pitchDeg = 0;  // pitch in deg. From IMU, feedback for PID
-double pitchSet = 90; // Combined controller and trim inputs, inp to PID
-// double pitchInp = 90; // input from controller
-// double pitchTrim = 0; // Trim value added to pitchSet. Manual correction for IMU error
+double pitchSet = 90; // Combined controller and trim inputs, setpoint for PID
+double power = 0;     // Motor power, output from PID.
 
 double kPID[3] = {7, 42, .1};
-double power = 0;
 PID pidControl(&pitchDeg, &power, &pitchSet, kPID[0], kPID[1], kPID[2], REVERSE);
 
 KivyBT bt(kPID, PIDupdate, PIDsave);
@@ -132,21 +128,21 @@ void setup()
 
   attachInterrupt(digitalPinToInterrupt(22), dmpDataReady, RISING);
 
-  digitalWrite(LEDPIN, HIGH);
+  digitalWriteFast(LEDPIN, HIGH);
 
   bt.print("\nInitializing IMU");
   imu.setup(&pitchDeg);
   bt.print("IMU Setup Successful\n");
   bt.print("Press Power to Enable\n");
-  IFD
-  {
-    while (Serial.read() == -1)
-    {
-      DPRINTLN("Waiting for Serial DBG");
-      delay(500);
-    }
-    DPRINTLN("___End of Setup____");
-  }
+  // IFD
+  // {
+  //   while (Serial.read() == -1)
+  //   {
+  //     DPRINTLN("Waiting for Serial DBG");
+  //     delay(500);
+  //   }
+  //   DPRINTLN("___End of Setup____");
+  // }
   waitForEnable();
 }
 
@@ -157,14 +153,15 @@ void loop()
   {
     imu.update();                        // updates value of pitchDeg on interrupt
     if (pitchDeg < 40 || pitchDeg > 130) // halts if robot tips over
-      waitForEnable();
+      waitForEnable("Angle Out of Bounds");
   }
 
   // send BT data
   updateBT(true);
   if (!btData.enable)
     waitForEnable("Disabled by Controller");
-
+  else if(!bt.connected)
+    waitForEnable("Connection Lost");
   if (pidControl.Compute()) // updates at frequency given to PID controller
   {
     // update outputs based on pid, timed by PID lib
@@ -179,6 +176,7 @@ void loop()
     //   l = power - steer;
     //   r = power + steer;
     // }
+
     int l, r;
     l = power;
     r = power;
@@ -193,6 +191,7 @@ void loop()
 }
 void waitForEnable(String message)
 {
+  bool disableAcknowledged = false; // wait for controller to concur that the bot is disabled before accepting an enable
   bt.print("Disabled: ");
   bt.print(message);
   bt.print("\n");
@@ -216,17 +215,26 @@ void waitForEnable(String message)
       blinkTime = millis() + 500;
     }
     updateBT(false);
-    if (btData.enable)
+    if (!disableAcknowledged && !btData.enable)
+    {
+      disableAcknowledged = true;
+      DPRINTLN("Lock Disable");
+    }
+    else if (btData.enable && disableAcknowledged)
+    {
       break;
+    }
   }
+  DPRINTLN("Enabling");
   digitalWrite(LEDPIN, LOW);
   pidControl.SetMode(AUTOMATIC);
-  bt.print("Enabled");
+  bt.print("Enabled\n");
 }
 void waitForEnable()
 {
   waitForEnable("");
 }
+// Send BT logging updates, and recieve and parse control. Saves control into btData struct, and pitchSet(input to PID)
 void updateBT(bool isEnabled)
 {
   if (btUpdateTimer.hasTimedOut())
@@ -237,7 +245,7 @@ void updateBT(bool isEnabled)
     bt.sendUpdate(battVolt, pitchSet, pitchDeg, isEnabled);
 
     bt.receiveData(&btData);
-    pitchSet = 90 + (-btData.speed / 32) + btData.trim;
+    pitchSet = 90 + (btData.speed / 32) + btData.trim;
   }
 }
 void PIDupdate()

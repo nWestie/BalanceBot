@@ -3,12 +3,12 @@
 
 #include <Arduino.h>
 #include <array>
-struct BTData // trim, speed, turn, enable
+struct BTData // speed, turn, trim, enable
 {
-    double trim;   // setpoint trim in deg
-    int16_t speed; // range -255 to 255
-    int16_t turn;  // range -255 to 255
-    bool enable;   // true if robot should be enabled
+    int8_t speed; // range -128 to 127
+    int8_t turn;  // range -128 to 127
+    float trim;   // setpoint trim in deg
+    bool enable;  // true if robot should be enabled
 };
 class BTInterface
 {
@@ -19,8 +19,9 @@ public:
     virtual void sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled) = 0;
     // prints a string to controller console
     virtual void print(String str) = 0;
-    double *kPID; // updated
-    double trim;
+    double *kPID; // updated with new PID vals
+    float trim;
+    bool connected;
 };
 class KivyBT : public BTInterface
 {
@@ -40,6 +41,8 @@ private:
     const char EOMchar = '/'; // signifies end of all sent/recieved messages
     String btDataString;
     bool receivedFlag;
+    uint32_t lastPacketTime;
+    void ackEnable();
     void (*PIDupdate)();
     void (*PIDsave)();
 };
