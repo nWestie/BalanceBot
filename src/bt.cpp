@@ -7,12 +7,11 @@
 const String ENABLECODE = "213";
 const String DISABLECODE = "226";
 
-KivyBT::KivyBT(double *kPID, void updatePID(), void savePID())
+KivyBT::KivyBT(void updatePID(), void savePID())
 {
     receivedFlag = false;
     btDataString = "";
     connected = false;
-    this->kPID = kPID;
     this->PIDupdate = updatePID;
     this->PIDsave = savePID;
     Serial2.begin(38400);

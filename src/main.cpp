@@ -1,12 +1,14 @@
 #define DEBUG
 
-#include "debug.h"
 #include "Encoder.h"
 #include "PID_v1.h"
-#include "IMU.h"
 #include "SoftTimers.h"
 #include <EEPROM.h>
+
+#include "debug.h"
 #include "bt.h"
+#include "IMU.h"
+#include "main.h"
 
 void waitForEnable(String);
 void waitForEnable();
@@ -29,6 +31,13 @@ SoftTimer btUpdateTimer; // sends BT data at 20Hz
 
 class Battery
 {
+private:
+  const float battMult = (3.3 * 12.9) / (3 * 1024);
+  uint8_t pin;
+  float battSmooth[8];
+  uint8_t btInd;
+  void (*lowBattFunc)(String str);
+
 public:
   Battery(uint8_t pin, void lowBattFunc(String str))
   {
@@ -56,13 +65,6 @@ public:
 
     return battVoltAvg;
   };
-
-private:
-  const float battMult = (3.3 * 12.9) / (3 * 1024);
-  uint8_t pin;
-  float battSmooth[8];
-  uint8_t btInd;
-  void (*lowBattFunc)(String str);
 };
 Battery batt(20, waitForEnable);
 
@@ -99,8 +101,10 @@ double pitchDeg = 0;  // pitch in deg. From IMU, feedback for PID
 double pitchSet = 90; // Combined controller and trim inputs, setpoint for PID
 double power = 0;     // Motor power, output from PID.
 
-double kPID[3] = {7, 42, .1};
-PID pidControl(&pitchDeg, &power, &pitchSet, kPID[0], kPID[1], kPID[2], REVERSE);
+PIDvals pid = {7, 42, .1};
+// double kPID[3] = {7, 42, .1}; //TODO this should be a struct, maybe wrap pid? maybe wrap pid into motor
+
+PID pidControl(&pitchDeg, &power, &pitchSet, pid.p, pid.i, pid.d, REVERSE);
 
 KivyBT bt(kPID, PIDupdate, PIDsave);
 BTData btData = {0, 0, 0, false};
