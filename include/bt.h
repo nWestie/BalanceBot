@@ -4,20 +4,20 @@
 #include <Arduino.h>
 #include <array>
 
-#include "main.h"
+#include "bot.h"
 
 struct BTData // speed, turn, trim, enable
 {
     int8_t speed; // range -128 to 127
     int8_t turn;  // range -128 to 127
-    float trim;   // setpoint trim in deg
+    float trim;   // set point trim in deg
     bool enable;  // true if robot should be enabled
 };
 class BTInterface
 {
 public:
     // sends PID weights to controller
-    virtual void sendPID(PIDvals pid) = 0;
+    virtual void sendPID(Bot::PIDvals pid) = 0;
     // sends latest batt voltage, setAngle, and measured angle to controller for diagnostics
     virtual void sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled) = 0;
     // prints a string to controller console
@@ -25,15 +25,16 @@ public:
     // gets any new data from the controller, updating the provided struct as nessisary.
     // will call provided PIDUpdate and PIDsave as needed.
     bool receiveData(BTData *recBTData);
+    bool isConnected();
 };
 class KivyBT : public BTInterface
 {
-public: //TODO not sure if I need any of this? if I say it's overriding BTInter
+public: // TODO not sure if I need any of this? if I say it's overriding BTInter
     KivyBT(void updatePID(), void savePID());
     // sends latest batt voltage, setAngle, and measured angle to controller for diagnostics
     void sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled);
     // sends PID weights to controller
-    void sendPID(PIDvals pid);
+    void sendPID(Bot::PIDvals pid);
     // prints a string to controller console
     void print(String str);
     /// gets any new data from the controller, updating the provided struct as nessisary.
@@ -54,7 +55,7 @@ private:
 class PhoneBT : public BTInterface
 {
     PhoneBT();
-    void sendPID(PIDvals pid);
+    void sendPID(Bot::PIDvals pid);
     void update(double voltage, double setAngle, double measuredAngle);
     void print(char *str);
 };

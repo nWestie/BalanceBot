@@ -8,7 +8,7 @@
 #include "debug.h"
 #include "bt.h"
 #include "IMU.h"
-#include "main.h"
+#include "bot.h"
 
 void waitForEnable(String);
 void waitForEnable();
@@ -81,7 +81,7 @@ public:
   }
   void drive(byte pwm, byte dir)
   {
-    digitalWriteFast(dirPin, dir); 
+    digitalWriteFast(dirPin, dir);
     analogWrite(pwmPin, pwm);
     return;
   }
@@ -101,13 +101,10 @@ double pitchDeg = 0;  // pitch in deg. From IMU, feedback for PID
 double pitchSet = 90; // Combined controller and trim inputs, setpoint for PID
 double power = 0;     // Motor power, output from PID.
 
-PIDvals pid = {7, 42, .1};
-// double kPID[3] = {7, 42, .1}; //TODO this should be a struct, maybe wrap pid? maybe wrap pid into motor
 
-PID pidControl(&pitchDeg, &power, &pitchSet, pid.p, pid.i, pid.d, REVERSE);
-
-KivyBT bt(kPID, PIDupdate, PIDsave);
+BTInterface *bt = &KivyBT(PIDupdate, PIDsave);
 BTData btData = {0, 0, 0, false};
+Bot bot = Bot();
 
 void setup()
 {
@@ -122,22 +119,14 @@ void setup()
   btUpdateTimer.setTimeOutTime(50);
   btUpdateTimer.reset();
 
-  kPID[0] = EEPROM.read(1);
-  kPID[1] = EEPROM.read(2);
-  kPID[2] = EEPROM.read(3);
-  pidControl.SetTunings(kPID[0], kPID[1], kPID[2]);
-  pidControl.SetOutputLimits(-255, 255);
-  pidControl.SetSampleTime(10); // in ms
-  bt.sendPID();
-
   attachInterrupt(digitalPinToInterrupt(22), dmpDataReady, RISING);
 
   digitalWriteFast(LEDPIN, HIGH);
 
-  bt.print("\nInitializing IMU");
+  bt->print("\nInitializing IMU");
   imu.setup(&pitchDeg);
-  bt.print("IMU Setup Successful\n");
-  bt.print("Press Power to Enable\n");
+  bt->print("IMU Setup Successful\n");
+  bt->print("Press Power to Enable\n");
   // IFD
   // {
   //   while (Serial.read() == -1)
@@ -147,6 +136,7 @@ void setup()
   //   }
   //   DPRINTLN("___End of Setup____");
   // }
+
   waitForEnable();
 }
 
@@ -164,7 +154,7 @@ void loop()
   updateBT(true);
   if (!btData.enable)
     waitForEnable("Disabled by Controller");
-  else if(!bt.connected)
+  else if (!bt->connected)
     waitForEnable("Connection Lost");
   if (pidControl.Compute()) // updates at frequency given to PID controller
   {
@@ -196,9 +186,9 @@ void loop()
 void waitForEnable(String message)
 {
   bool disableAcknowledged = false; // wait for controller to concur that the bot is disabled before accepting an enable
-  bt.print("Disabled: ");
-  bt.print(message);
-  bt.print("\n");
+  bt->print("Disabled: ");
+  bt->print(message);
+  bt->print("\n");
 
   stopAll();
 
@@ -255,23 +245,23 @@ void updateBT(bool isEnabled)
 void PIDupdate()
 {
   DPRINT("PUpdate: ");
-  DPRINT(kPID[0]);
+  DPRINT(pid[0]);
   DPRINT(",");
-  DPRINT(kPID[1]);
+  DPRINT(pid[1]);
   DPRINT(",");
-  DPRINTLN(kPID[2]);
-  pidControl.SetTunings(kPID[0], kPID[1], kPID[2]);
+  DPRINTLN(pid[2]);
+  pidControl.SetTunings(pid[0], pid[1], pid[2]);
 };
 void PIDsave()
 {
   DPRINT("PSave: ");
-  DPRINT(kPID[0]);
+  DPRINT(pid[0]);
   DPRINT(",");
-  DPRINT(kPID[1]);
+  DPRINT(pid[1]);
   DPRINT(",");
-  DPRINTLN(kPID[2]);
-  EEPROM.write(1, kPID[0]);
-  EEPROM.write(2, kPID[1]);
-  EEPROM.write(3, kPID[2]);
+  DPRINTLN(pid[2]);
+  EEPROM.write(1, pid[0]);
+  EEPROM.write(2, pid[1]);
+  EEPROM.write(3, pid[2]);
   bt.print("PID Saved to EEPROM\n");
 };

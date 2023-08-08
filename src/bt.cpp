@@ -1,8 +1,10 @@
 // #define DEBUG
 
 #include "Arduino.h"
-#include "bt.h"
 #include "debug.h"
+#include "bot.h"
+#include "bt.h"
+
 // 'random' codes for disable an enable, to reduce chance of false triggers
 const String ENABLECODE = "213";
 const String DISABLECODE = "226";
@@ -30,16 +32,16 @@ void KivyBT::sendUpdate(double voltage, double setAngle, double measuredAngle, d
     Serial2.print(isEnabled);
     Serial2.print(EOMchar);
 }
-void KivyBT::sendPID()
+void KivyBT::sendPID(Bot::PIDvals pid)
 {
     Serial2.print("P");
     Serial2.print(millis());
     Serial2.print(",");
-    Serial2.print(kPID[0], 3);
+    Serial2.print(pid.p, 3);
     Serial2.print(",");
-    Serial2.print(kPID[1], 3);
+    Serial2.print(pid.i, 3);
     Serial2.print(",");
-    Serial2.print(kPID[2], 3);
+    Serial2.print(pid.d, 3);
     Serial2.print(EOMchar);
 };
 bool KivyBT::receiveData(BTData *recBTData)
@@ -85,14 +87,15 @@ bool KivyBT::receiveData(BTData *recBTData)
             recBTData->turn = packet.toInt();
             packet = packet.substring(packet.indexOf(',') + 1);
             recBTData->trim = packet.toFloat();
-            packet = packet.substring(packet.indexOf(',') + 1,packet.indexOf(',')+4);
+            packet = packet.substring(packet.indexOf(',') + 1, packet.indexOf(',') + 4);
             if (!(packet == ENABLECODE or packet == DISABLECODE))
             {
                 print("Bad E Code\n");
                 break;
             }
-            tmpE = (packet == ENABLECODE)?1:0;
-            if (tmpE != recBTData->enable){
+            tmpE = (packet == ENABLECODE) ? 1 : 0;
+            if (tmpE != recBTData->enable)
+            {
                 recBTData->enable = tmpE;
                 ackEnable();
             }
@@ -101,16 +104,15 @@ bool KivyBT::receiveData(BTData *recBTData)
             this->PIDsave();
             break;
         case 'P':
-            kPID[0] = packet.substring(1).toFloat();
-            packet = packet.substring(packet.indexOf(',') + 1);
-            kPID[1] = packet.toFloat();
-            packet = packet.substring(packet.indexOf(',') + 1);
-            kPID[2] = packet.toFloat();
+            Bot::PIDvals vals;
+            vals.p = packet.substring(1).toFloat();
+            vals.i = packet.substring(packet.indexOf(',') + 1).toFloat();
+            vals.d = packet.substring(packet.lastIndexOf(',') + 1).toFloat(); // TODO this might not work(lastInd)
             this->PIDupdate();
-            sendPID();
+            // sendPID(); TODO fix
             break;
         case 'R':
-            sendPID();
+            // sendPID(); TODO fix
             break;
         }
     }
