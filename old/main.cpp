@@ -29,44 +29,43 @@ void dmpDataReady()
 
 SoftTimer btUpdateTimer; // sends BT data at 20Hz
 
-class Battery
-{
-private:
-  const float battMult = (3.3 * 12.9) / (3 * 1024);
-  uint8_t pin;
-  float battSmooth[8];
-  uint8_t btInd;
-  void (*lowBattFunc)(String str);
+// class Battery
+// {
+// private:
+//   const float battMult = (3.3 * 12.9) / (3 * 1024); // converts from read voltage to battery voltage
+//   uint8_t pin;
+//   float battSmooth[8];
+//   uint8_t btInd;
+//   void (*lowBattFunc)(String str);
 
-public:
-  Battery(uint8_t pin, void lowBattFunc(String str))
-  {
-    this->pin = pin;
-    this->lowBattFunc = lowBattFunc;
+// public:
+//   Battery(uint8_t pin, void lowBattFunc(String str))
+//   {
+//     this->pin = pin;
+//     this->lowBattFunc = lowBattFunc;
 
-    btInd = 0;
-    battSmooth[0] = analogRead(pin) * battMult;
-    for (int i = 1; i < 8; i++)
-      battSmooth[i] = battSmooth[0];
-  };
-  double updateVoltage(bool isEnabled)
-  {
-    battSmooth[btInd] = analogRead(pin) * battMult;
-    btInd++;
-    btInd &= 0x07; // loops over above index 7 ('overflows')
+//     btInd = 0;
+//     battSmooth[0] = analogRead(pin) * battMult;
+//     for (int i = 1; i < 8; i++)
+//       battSmooth[i] = battSmooth[0];
+//   };
+//   double updateVoltage(bool isEnabled)
+//   {
+//     battSmooth[btInd] = analogRead(pin) * battMult;
+//     btInd++;
+//     btInd &= 0x07; // loops over above index 7 ('overflows')
 
-    float battVoltAvg = 0;
-    for (int i = 0; i < 8; i++)
-      battVoltAvg += battSmooth[i];
-    battVoltAvg /= 8;
+//     float battVoltAvg = 0;
+//     for (int i = 0; i < 8; i++)
+//       battVoltAvg += battSmooth[i];
+//     battVoltAvg /= 8;
 
-    if (isEnabled && battVoltAvg < 11.18) //~20%. Don't call if disabled, to prevent call stack overflow
-      lowBattFunc("LOW BATT");
+//     if (isEnabled && battVoltAvg < 11.18) //~20%. Don't call if disabled, to prevent call stack overflow
+//       lowBattFunc("LOW BATT");
 
-    return battVoltAvg;
-  };
-};
-Battery batt(20, waitForEnable);
+//     return battVoltAvg;
+//   };
+// };
 
 class Motor
 {
