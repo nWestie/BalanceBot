@@ -1,4 +1,4 @@
-//#define DEBUG
+// #define DEBUG
 #include "debug.h"
 
 #include <IMU.h>
@@ -14,8 +14,8 @@ void IMU::setOffsets(const int TheOffsets[6])
     mpu.setZGyroOffset(TheOffsets[5]);
 } // SetOffsets
 
-// Set up the IMU. recieves the double to store pitch output into. 
-void IMU::setup(double *pitchOutput)
+// Set up the IMU. receives the float to store pitch output into, returns true if successful
+bool IMU::setup(float *pitchOutput)
 {
 
     pOut = pitchOutput; // address to write pitch to
@@ -24,17 +24,17 @@ void IMU::setup(double *pitchOutput)
     Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
 
     // initialize device
-    DPRINTLN(F("Initializing I2C devices..."));
+    // DPRINTLN(F("Initializing I2C devices..."));
     mpu.initialize();
     // pinMode(INTERRUPT_PIN, INPUT);
 
     // verify connection
-    DPRINTLN(F("Testing device connections..."));
-    Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+    if (!mpu.testConnection())
+        return false;
 
     // load and configure the DMP
     DPRINTLN(F("Initializing DMP..."));
-    devStatus = mpu.dmpInitialize();
+    uint16_t devStatus = mpu.dmpInitialize();
 
     setOffsets(imuOffsets);
 
@@ -50,14 +50,13 @@ void IMU::setup(double *pitchOutput)
         mpu.setDMPEnabled(true);
 
         // enable Arduino interrupt detection
-        mpuIntStatus = mpu.getIntStatus();
+        // mpuIntStatus = mpu.getIntStatus();
 
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
-        DPRINTLN(F("DMP ready! Waiting for first interrupt..."));
-        dmpReady = true;
+        // dmpReady = true;
 
         // get expected DMP packet size for later comparison
-        packetSize = mpu.dmpGetFIFOPacketSize();
+        // packetSize = mpu.dmpGetFIFOPacketSize();
     }
     else
     {
@@ -68,15 +67,16 @@ void IMU::setup(double *pitchOutput)
         DPRINT(F("DMP Initialization failed (code "));
         DPRINT(devStatus);
         DPRINTLN(F(")"));
+        return false;
     }
 }
 
+// returns true if valid packet is found
 bool IMU::update()
-{ // returns true if valid packet is found
+{
     // read a packet from FIFO
     if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer))
     { // Get the Latest packet
-        // display Euler angles in degrees
         mpu.dmpGetQuaternion(&q, fifoBuffer);
         mpu.dmpGetGravity(&gravity, &q);
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
