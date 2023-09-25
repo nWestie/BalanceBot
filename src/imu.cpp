@@ -80,7 +80,7 @@ bool IMU::update()
         mpu.dmpGetQuaternion(&q, fifoBuffer);
         mpu.dmpGetGravity(&gravity, &q);
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-        *pOut = ypr[1] * 57.2957795131;
+        *pOut = ypr[1] * 57.2957795131f;
         return true;
     }
     return false;

@@ -29,69 +29,6 @@ void dmpDataReady()
 
 SoftTimer btUpdateTimer; // sends BT data at 20Hz
 
-// class Battery
-// {
-// private:
-//   const float battMult = (3.3 * 12.9) / (3 * 1024); // converts from read voltage to battery voltage
-//   uint8_t pin;
-//   float battSmooth[8];
-//   uint8_t btInd;
-//   void (*lowBattFunc)(String str);
-
-// public:
-//   Battery(uint8_t pin, void lowBattFunc(String str))
-//   {
-//     this->pin = pin;
-//     this->lowBattFunc = lowBattFunc;
-
-//     btInd = 0;
-//     battSmooth[0] = analogRead(pin) * battMult;
-//     for (int i = 1; i < 8; i++)
-//       battSmooth[i] = battSmooth[0];
-//   };
-//   double updateVoltage(bool isEnabled)
-//   {
-//     battSmooth[btInd] = analogRead(pin) * battMult;
-//     btInd++;
-//     btInd &= 0x07; // loops over above index 7 ('overflows')
-
-//     float battVoltAvg = 0;
-//     for (int i = 0; i < 8; i++)
-//       battVoltAvg += battSmooth[i];
-//     battVoltAvg /= 8;
-
-//     if (isEnabled && battVoltAvg < 11.18) //~20%. Don't call if disabled, to prevent call stack overflow
-//       lowBattFunc("LOW BATT");
-
-//     return battVoltAvg;
-//   };
-// };
-
-class Motor
-{
-private:
-  const byte dirPin, pwmPin;
-
-public:
-  Encoder enc = Encoder(0, 0);
-  Motor(byte pwm, byte dir, uint8_t e1, uint8_t e2) : dirPin(dir), pwmPin(pwm)
-  {
-    enc = Encoder(e1, e2);
-  }
-  void drive(byte pwm, byte dir)
-  {
-    digitalWriteFast(dirPin, dir);
-    analogWrite(pwmPin, pwm);
-    return;
-  }
-};
-Motor lMotor(17, 15, 7, 8); // pwm, dir, enc1, enc2
-Motor rMotor(16, 14, 5, 6);
-void stopAll()
-{
-  lMotor.drive(0, 1);
-  rMotor.drive(0, 1);
-}
 
 // Halts execution til restarted by controller
 void waitForEnable();
