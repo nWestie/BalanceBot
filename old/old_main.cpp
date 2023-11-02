@@ -8,7 +8,6 @@
 #include "debug.h"
 #include "bt.h"
 #include "IMU.h"
-#include "bot.h"
 
 void waitForEnable(String);
 void waitForEnable();

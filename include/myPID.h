@@ -11,7 +11,7 @@
 class PID
 {
 public:
-  // Constants used in some of the functions below
+  // PID Constants
   struct KPID
   {
     double p;
@@ -19,11 +19,11 @@ public:
     double d;
   };
 
-  // commonly used functions:
+  // KPID, input, output, setpoint
   // constructor.  links the PID to the Input, Output, and
   // Setpoint.  Initial tuning parameters are also set here.
   // (overload for specifying proportional mode)
-  PID(KPID, double *, double *, double *, int, int);
+  PID(KPID, double *, double *, double *, bool);
 
   void Compute(); // * performs the PID calculation.  it should be
                   //   called every time loop() cycles. ON/OFF and
@@ -33,21 +33,13 @@ public:
   // available but not commonly used functions ********************************************************
   void SetTunings(KPID); //   constructor, this function gives the user the option
                          //   of changing tunings during runtime for Adaptive control
-  void SetTunings(KPID, int);
 
-
-  // Display functions ****************************************************************
-  KPID GetPID(); // These functions query the pid for interal values.
-                 // they were created mainly for the pid front-end,
-                 // where it's important to know what is actually
+  // KPID GetPID();
 
 private:
   void Initialize();
 
-
   KPID tunings;
-
-  int pOn;
 
   double *myInput;    // * Pointers to the Input, Output, and Setpoint variables
   double *myOutput;   //   This creates a hard link between the variables and the
@@ -59,6 +51,6 @@ private:
 
   unsigned int SampleTime;
   double outMin, outMax;
-  bool pOnE;
+  bool pOnE; // True if proportional on error, false for proportional on measurement
 };
 #endif

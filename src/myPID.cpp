@@ -13,8 +13,10 @@
  *    The parameters specified here are those for for which we can't set up
  *    reliable defaults, so we need to have the user set them.
  */
-PID::PID(KPID PidGains, double *Input, double *Output, double *Setpoint, int POn, int ControllerDirection)
+PID::PID(KPID PidGains, double *Input, double *Output, double *Setpoint, bool POnError)
 {
+   pOnE = POnError;
+
    myOutput = Output;
    myInput = Input;
    mySetpoint = Setpoint;
@@ -25,7 +27,7 @@ PID::PID(KPID PidGains, double *Input, double *Output, double *Setpoint, int POn
    SampleTime = 100; // default Controller Sample Time is 0.1 seconds
 
    // PID::SetControllerDirection(ControllerDirection);
-   PID::SetTunings(PidGains, POn);
+   PID::SetTunings(PidGains);
 
    // lastTime = millis() - SampleTime;
 }
@@ -78,21 +80,16 @@ void PID::Compute()
  * it's called automatically from the constructor, but tunings can also
  * be adjusted on the fly during normal operation
  */
-void PID::SetTunings(KPID NewTunings, int POn)
+void PID::SetTunings(KPID NewTunings)
 {
-   pOn = POn;
-   pOnE = POn == P_ON_E;
+   // pOn = POn;
+   // pOnE = POn == P_ON_E;
 
    double SampleTimeInSec = ((double)SampleTime) / 1000;
-   NewTunings.i *= SampleTimeInSec;
-   NewTunings.d /= SampleTimeInSec;
-   tunings = NewTunings;
+   tunings.p = NewTunings.p;
+   tunings.i = NewTunings.i * SampleTimeInSec;
+   tunings.d = NewTunings.d / SampleTimeInSec;
 }
-
-/* SetTunings(...)
- * Set Tunings using the last-remembered POn setting
- */
-void PID::SetTunings(KPID NewTunings) { SetTunings(NewTunings, pOn); }
 
 /* Initialize()
  *	does all the things that need to happen to ensure a bumpless transfer
@@ -113,4 +110,4 @@ void PID::Initialize()
  * functions query the internal state of the PID.  they're here for display
  * purposes. Will return time adjusted values, see Initialize()
  */
-PID::KPID PID::GetPID() { return tunings; }
+// PID::KPID PID::GetPID() { return tunings; }

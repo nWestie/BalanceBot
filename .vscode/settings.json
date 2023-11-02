@@ -23,5 +23,6 @@
         "typeinfo": "cpp",
         "array": "cpp",
         "stdexcept": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "C:/Users/westn/Documents/code/BalanceBot/.pio/libdeps/native/Unity"
 }
