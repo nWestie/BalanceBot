@@ -108,7 +108,7 @@ PID::KPID motorPID = {40.0, 1, .05};
 // BT things
 void updatePID() {}
 void savePID() {}
-BTInterface *bt;
+BTHandler bt = BTHandler(updatePID, savePID, &motorPID);
 
 // IMU things
 IMU imu;
@@ -122,8 +122,6 @@ Timer updateStats(50);
 void setup()
 {
     Serial.begin(38400);
-
-    bt = new KivyBT(updatePID, savePID, &motorPID);
     // set inputs
     for (byte i = 5; i < 9; i++)
         pinMode(i, INPUT);
@@ -132,11 +130,11 @@ void setup()
         pinMode(i, OUTPUT);
     pinMode(LEDPIN, OUTPUT);
 
-    // attachInterrupt(22, imuInterruptCallback, RISING); // interrupt pin for the mpu
+    attachInterrupt(22, imuInterruptCallback, RISING); // interrupt pin for the mpu
 
-    // digitalWriteFast(LEDPIN, HIGH);
-    // imu.setup(&measuredPitch);
-    // digitalWriteFast(LEDPIN, LOW);
+    digitalWriteFast(LEDPIN, HIGH);
+    imu.setup(&measuredPitch);
+    digitalWriteFast(LEDPIN, LOW);
 }
 
 Timer flashTimer(500);
@@ -144,21 +142,29 @@ Timer flashTimer(500);
 void loop()
 {
     /// loop over all the timers and do the shit when da shit needs done
-    if (flashTimer.hasTimedOut() && !enabled)
+    if (battTimer.hasTimedOut()) // 10 Hz
     {
-        digitalWriteFast(LEDPIN, !digitalReadFast(LEDPIN)); // toggle LED
-        bt->print(String(batt.getVoltage()) + "\n");
+        batt.updateVoltage();
+        // disable if low voltage
+        if (enabled && batt.lowVoltage());
     }
-    if (updateControl.hasTimedOut()) // run control loop
+
+    if (imu_interrupt)
     {
-        String s = bt->recDataTest();
+        imu_interrupt = false;
+        imu.update();
+    }
+    
+    if (updateControl.hasTimedOut()) // runs at 100 Hz
+    {
+        String s = bt.recDataTest();
         if (s.length())
         {
             Serial.print("Len(");
             Serial.print(s.length());
             Serial.print("): ");
             Serial.print(s);
-            for (int i = 0; i < s.length(); i++)
+            for (auto i = 0; i < s.length(); i++)
             {
                 Serial.print(s[i], HEX);
                 Serial.print(", ");
@@ -168,17 +174,11 @@ void loop()
     }
     if (!enabled)
     {
+        if (flashTimer.hasTimedOut()) //2 Hz, 500ms on/off
+        {
+            digitalWriteFast(LEDPIN, !digitalReadFast(LEDPIN)); // toggle LED
+            bt.print(String(batt.getVoltage()) + "\n");
+        }
         return;
-    }
-    // else if (imu_interrupt)
-    // {
-    //     imu_interrupt = false;
-    //     imu.update();
-    // }
-    if (battTimer.hasTimedOut())
-    {
-        batt.updateVoltage();
-        // disable if low voltage
-        enabled = enabled && !batt.lowVoltage();
     }
 }

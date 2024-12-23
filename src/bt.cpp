@@ -10,7 +10,7 @@
 const String ENABLECODE = "213";
 const String DISABLECODE = "226";
 
-KivyBT::KivyBT(void updatePID(), void savePID(), PID::KPID *pid)
+BTHandler::BTHandler(void updatePID(), void savePID(), PID::KPID *pid)
 {
     this->PIDupdate = updatePID;
     this->PIDsave = savePID;
@@ -19,13 +19,16 @@ KivyBT::KivyBT(void updatePID(), void savePID(), PID::KPID *pid)
     receivedFlag = false;
     btDataString = "";
     connected = false;
+
     Serial2.begin(38400);
-    Serial2.setTimeout(0);
+    // Serial BT should not wait for characters when reading
+    Serial2.setTimeout(0); 
 }
-void KivyBT::sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled)
+void BTHandler::sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled)
 {
     Serial2.print("U");
     Serial2.print(millis());
+    Serial2.print(isEnabled);
     Serial2.print(",");
     Serial2.print(voltage);
     Serial2.print(",");
@@ -33,10 +36,9 @@ void KivyBT::sendUpdate(double voltage, double setAngle, double measuredAngle, d
     Serial2.print(",");
     Serial2.print(measuredAngle);
     Serial2.print(",");
-    Serial2.print(isEnabled);
     Serial2.print(EOMchar);
 }
-void KivyBT::sendPID()
+void BTHandler::sendPID()
 {
     Serial2.print("P");
     Serial2.print(millis());
@@ -48,17 +50,16 @@ void KivyBT::sendPID()
     Serial2.print(PIDvals->d, 3);
     Serial2.print(EOMchar);
 };
-bool KivyBT::receiveData(BTData *recBTData)
+bool BTHandler::receiveData(BTData *recBTData)
 {
     bool dataUpdated = false; // will only return true if new data is added to recBTData
-
-    int bytes = Serial2.available();
-    char newData[bytes];
-    Serial2.readBytes(newData, bytes);
-    btDataString += newData;
+    if (!Serial2.available())
+        return false;
+    btDataString += Serial2.readString();
+    Serial.println(btDataString);
+    int endCharIndex = btDataString.indexOf(EOMchar);
     if (btDataString.length() > 255)
         btDataString = "";
-    int endCharIndex = btDataString.indexOf(EOMchar);
     while (endCharIndex != -1)
     {
         String packet = btDataString.substring(0, endCharIndex);
@@ -132,7 +133,7 @@ bool KivyBT::receiveData(BTData *recBTData)
     return dataUpdated;
 };
 
-String KivyBT::recDataTest()
+String BTHandler::recDataTest()
 {
     if (!Serial2.available())
         return "";
@@ -147,26 +148,11 @@ String KivyBT::recDataTest()
     }
     return "";
 };
-void KivyBT::print(String str)
+void BTHandler::print(String str)
 {
-    Serial2.printf("M");
-    Serial2.print(str);
-    Serial2.print("/");
+    Serial2.println("M" + str + "/");
 };
-void KivyBT::ackEnable()
+void BTHandler::ackEnable()
 {
     Serial2.print("A/");
 }
-// --------------Phone--------------
-// void PhoneBT::update(double voltage, double setAngle, double measuredAngle)
-// {
-//     Serial2.print("*V");
-//     Serial2.print(voltage);
-//     Serial2.print("**C");
-//     Serial2.print(voltage);
-//     Serial2.print("**G");
-//     Serial2.print(setAngle);
-//     Serial2.print(",");
-//     Serial2.print(measuredAngle);
-//     Serial2.print("*");
-// }

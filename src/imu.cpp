@@ -2,7 +2,7 @@
 #include "debug.h"
 
 #include <IMU.h>
-const int imuOffsets[6] = {-3384, -2533, 1151, 60, -6, 22};
+const int imuOffsets[] = {-3384, -2533, 1151, 60, -6, 22};
 
 void IMU::setOffsets(const int TheOffsets[6])
 {

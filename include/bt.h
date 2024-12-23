@@ -12,25 +12,10 @@ struct BTData // speed, turn, trim, enable
     float trim;   // set point trim in deg
     bool enable;  // true if robot should be enabled
 };
-class BTInterface
-{
-public:
-    // sends PID weights to controller
-    virtual void sendPID() = 0;
-    // sends latest batt voltage, setAngle, and measured angle to controller for diagnostics
-    virtual void sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled) = 0;
-    // prints a string to controller console
-    virtual void print(String str) = 0;
-    // gets any new data from the controller, updating the provided struct as nessisary.
-    // will call provided PIDUpdate and PIDsave as needed.
-    virtual bool receiveData(BTData *recBTData) = 0;
-    // virtual bool isConnected() = 0;
-    virtual String recDataTest() = 0;
-};
-class KivyBT : public BTInterface
-{
+
+class BTHandler{
 public: // TODO not sure if I need any of this? if I say it's overriding BTInter
-    KivyBT(void updatePID(), void savePID(), PID::KPID *pid);
+    BTHandler(void updatePID(), void savePID(), PID::KPID *pid);
     // sends latest batt voltage, setAngle, and measured angle to controller for diagnostics
     void sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled);
     // sends PID weights to controller
@@ -54,13 +39,6 @@ private:
     float trim;
     bool connected;
 };
-// class PhoneBT : public BTInterface
-// {
-//     PhoneBT();
-//     bool receiveData(BTData *recBTData);
-//     void sendPID();
-//     void sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled);
-//     void print(String str);
-// };
+
 
 #endif
