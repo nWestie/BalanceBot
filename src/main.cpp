@@ -3,15 +3,14 @@
 #include <Arduino.h>
 #include <Encoder.h>
 
-#include "debug.h"
-#include "myPID.h"
 #include "IMU.h"
 #include "bt.h"
+#include "debug.h"
+#include "myPID.h"
 
 #define LEDPIN 21
 
-class Timer
-{
+class Timer {
     const uint16_t intervalMillis;
     uint32_t nextTriggerTime;
 
@@ -20,11 +19,9 @@ public:
     Timer(uint16_t interval) : intervalMillis(interval), nextTriggerTime(millis() + interval) {}
 
     // if timer is expired, returns true and resets the timer.
-    bool hasTimedOut()
-    {
+    bool hasTimedOut() {
         uint32_t t = millis();
-        if (t < nextTriggerTime)
-        {
+        if (t < nextTriggerTime) {
             return false;
         }
         nextTriggerTime = t + intervalMillis;
@@ -34,11 +31,9 @@ public:
 
 // accounts for voltage divider, analog input range, and averaging process
 constexpr float battMult = (3.3 * 12.9) / (3 * 1024) / 8;
-class Battery
-{
+class Battery {
 public:
-    Battery(uint8_t pin_name) : pin(pin_name)
-    {
+    Battery(uint8_t pin_name) : pin(pin_name) {
         float reading = analogRead(pin) * battMult;
         for (int i = 0; i < 8; i++)
             smooth[i] = reading;
@@ -46,8 +41,7 @@ public:
     };
 
     // should be called at a regular interval
-    void updateVoltage()
-    {
+    void updateVoltage() {
         btInd = btTailInd;
         btTailInd = (btTailInd + 1) & 0x07; // loops til 7 then starts back at 0
 
@@ -71,8 +65,7 @@ private:
     float voltageAvg;
 };
 
-class Motor
-{
+class Motor {
 private:
     const uint8_t dir;
     const uint8_t pwm;
@@ -82,8 +75,7 @@ public:
 
     Motor(uint8_t pwmPin, uint8_t dirPin, uint8_t encoder1, uint8_t encoder2) : dir(dirPin), pwm(pwmPin), enc(encoder1, encoder2) {}
 
-    void drive(byte pwm, byte dir)
-    {
+    void drive(byte pwm, byte dir) {
         digitalWriteFast(dir, dir);
         analogWrite(pwm, pwm);
     }
@@ -106,9 +98,9 @@ PID::KPID motorPID = {40.0, 1, .05};
 // }
 
 // BT things
-void updatePID() {}
-void savePID() {}
-BTHandler bt = BTHandler(updatePID, savePID, &motorPID);
+void updatePID(PID::KPID &) {}
+void savePID(PID::KPID &) {}
+BTHandler bt = BTHandler(updatePID, savePID, motorPID);
 
 // IMU things
 IMU imu;
@@ -119,8 +111,7 @@ float measuredPitch;
 Timer updateControl(10);
 Timer updateStats(50);
 
-void setup()
-{
+void setup() {
     Serial.begin(38400);
     // set inputs
     for (byte i = 5; i < 9; i++)
@@ -139,42 +130,38 @@ void setup()
 
 Timer flashTimer(500);
 
-void loop()
-{
+void loop() {
     /// loop over all the timers and do the shit when da shit needs done
     if (battTimer.hasTimedOut()) // 10 Hz
     {
         batt.updateVoltage();
         // disable if low voltage
-        if (enabled && batt.lowVoltage());
+        if (enabled && batt.lowVoltage())
+            ;
     }
 
-    if (imu_interrupt)
-    {
+    if (imu_interrupt) {
         imu_interrupt = false;
         imu.update();
     }
-    
+
     if (updateControl.hasTimedOut()) // runs at 100 Hz
     {
         String s = bt.recDataTest();
-        if (s.length())
-        {
+        if (s.length()) {
             Serial.print("Len(");
             Serial.print(s.length());
             Serial.print("): ");
             Serial.print(s);
-            for (auto i = 0; i < s.length(); i++)
-            {
+            for (unsigned int i = 0; i < s.length(); i++) {
                 Serial.print(s[i], HEX);
                 Serial.print(", ");
             }
             Serial.println();
         }
     }
-    if (!enabled)
-    {
-        if (flashTimer.hasTimedOut()) //2 Hz, 500ms on/off
+    if (!enabled) {
+        if (flashTimer.hasTimedOut()) // 2 Hz, 500ms on/off
         {
             digitalWriteFast(LEDPIN, !digitalReadFast(LEDPIN)); // toggle LED
             bt.print(String(batt.getVoltage()) + "\n");

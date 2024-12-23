@@ -7,25 +7,18 @@
 #include "myPID.h"
 
 // 'random' codes for disable an enable, to reduce chance of false triggers
-const String ENABLECODE = "213";
-const String DISABLECODE = "226";
 
-BTHandler::BTHandler(void updatePID(), void savePID(), PID::KPID *pid)
-{
-    this->PIDupdate = updatePID;
-    this->PIDsave = savePID;
-    this->PIDvals = pid;
-
+BTHandler::BTHandler(void updatePID(PID::KPID &), void savePID(PID::KPID &), PID::KPID &pid) : PIDupdate(updatePID), PIDsave(savePID), PIDvals(pid) {
     receivedFlag = false;
     btDataString = "";
     connected = false;
+    lastPacketTime = millis();
 
     Serial2.begin(38400);
     // Serial BT should not wait for characters when reading
-    Serial2.setTimeout(0); 
+    Serial2.setTimeout(0);
 }
-void BTHandler::sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled)
-{
+void BTHandler::sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled) {
     Serial2.print("U");
     Serial2.print(millis());
     Serial2.print(isEnabled);
@@ -38,121 +31,84 @@ void BTHandler::sendUpdate(double voltage, double setAngle, double measuredAngle
     Serial2.print(",");
     Serial2.print(EOMchar);
 }
-void BTHandler::sendPID()
-{
+void BTHandler::sendPID(PID::KPID &vals) {
     Serial2.print("P");
     Serial2.print(millis());
     Serial2.print(",");
-    Serial2.print(PIDvals->p, 3);
+    Serial2.print(vals.p, 3);
     Serial2.print(",");
-    Serial2.print(PIDvals->i, 3);
+    Serial2.print(vals.i, 3);
     Serial2.print(",");
-    Serial2.print(PIDvals->d, 3);
+    Serial2.print(vals.d, 3);
     Serial2.print(EOMchar);
 };
-bool BTHandler::receiveData(BTData *recBTData)
-{
-    bool dataUpdated = false; // will only return true if new data is added to recBTData
+void BTHandler::receiveData() {
     if (!Serial2.available())
-        return false;
+        return;
     btDataString += Serial2.readString();
-    Serial.println(btDataString);
+    // Serial.println(btDataString);
     int endCharIndex = btDataString.indexOf(EOMchar);
     if (btDataString.length() > 255)
-        btDataString = "";
-    while (endCharIndex != -1)
-    {
+        Serial.println("WARN - large read buffer");
+
+    while (endCharIndex != -1) {
         String packet = btDataString.substring(0, endCharIndex);
         btDataString = btDataString.substring(endCharIndex + 1);
 
         endCharIndex = btDataString.indexOf(EOMchar);
 
-        // remove any non-message characters before message
-        if (!isAlpha(packet[0]))
-        {
-            uint16_t dataStart = 1;
-            while (dataStart < packet.length())
-            {
-                if (isAlpha(packet[dataStart]))
-                    break;
-                dataStart++;
-            }
-            // if there are no good characters
-            if (dataStart == packet.length() - 1)
-            {
-                DPRINTLN("Bad Packet");
-                continue;
-            }
-            packet = packet.substring(dataStart);
-        }
-        // now considering packet to be only good, expected chars
-        dataUpdated = true;
-
         lastPacketTime = millis(); // keep track of last good message for heartbeat.
-
-        int tmpEnable;
-        switch (packet[0]) // switch on first character
+        switch (packet[0])         // switch on first character
         {
-        case 'U': // save new commands to
-            recBTData->speed = packet.substring(1).toInt();
+        case 'X': // Get joystick commands
+            ctlData.speed = packet.substring(1).toInt();
             packet = packet.substring(packet.indexOf(',') + 1);
-            recBTData->turn = packet.toInt();
-            packet = packet.substring(packet.indexOf(',') + 1);
-            recBTData->trim = packet.toFloat();
-            packet = packet.substring(packet.indexOf(',') + 1, packet.indexOf(',') + 4);
-            // If packet is neither enable nor disable
-            if (!(packet == ENABLECODE or packet == DISABLECODE))
-            {
-                print("Bad E Code\n");
-                break;
-            }
-            tmpEnable = (packet == ENABLECODE) ? 1 : 0;
-            if (tmpEnable != recBTData->enable)
-            {
-                recBTData->enable = tmpEnable;
-                ackEnable();
-            }
+            ctlData.turn = packet.toInt();
+            break;
+        case 'T': // Get Trim commands
+            ctlData.trim = packet.substring(1).toFloat();
+            break;
+        case 'E':
+            // TODO: Implement Enable
+            break;
+        case 'D':
+            // TODO: Implement Disable
             break;
         case 'S': // save PID to EEprom
-            this->PIDsave();
-            break;
         case 'P': // read updated PID values
-            PID::KPID vals;
-            vals.p = packet.substring(1).toFloat();
-            vals.i = packet.substring(packet.indexOf(',') + 1).toFloat();
-            vals.d = packet.substring(packet.lastIndexOf(',') + 1).toFloat(); // TODO this might not work(lastInd)
-            this->PIDupdate();
-            sendPID();
+            PIDvals.p = packet.substring(1).toFloat();
+            PIDvals.i = packet.substring(packet.indexOf(',') + 1).toFloat();
+            PIDvals.d = packet.substring(packet.lastIndexOf(',') + 1).toFloat(); // TODO this might not work(lastInd)
+            if (packet[0] == 'S')
+                this->PIDsave(PIDvals);
+            else
+                this->PIDupdate(PIDvals);
+            // sendPID();
             break;
         case 'R': // send requested PID vals
-            sendPID();
+            sendPID(PIDvals);
             break;
         }
     }
     connected = (millis() - lastPacketTime) < 200;
-    return dataUpdated;
+    return;
 };
 
-String BTHandler::recDataTest()
-{
+CTLData BTHandler::getCTL() { return ctlData; }
+
+String BTHandler::recDataTest() {
     if (!Serial2.available())
         return "";
     btDataString += Serial2.readString();
     Serial.println(btDataString);
     int endCharIndex = btDataString.indexOf(EOMchar);
-    if (endCharIndex != -1)
-    {
+    if (endCharIndex != -1) {
         String packet = btDataString.substring(0, endCharIndex);
         btDataString = btDataString.substring(endCharIndex + 1);
         return packet;
     }
     return "";
 };
-void BTHandler::print(String str)
-{
+void BTHandler::print(String str) {
     Serial2.println("M" + str + "/");
 };
-void BTHandler::ackEnable()
-{
-    Serial2.print("A/");
-}
