@@ -8,7 +8,7 @@
 
 // 'random' codes for disable an enable, to reduce chance of false triggers
 
-BTHandler::BTHandler(void updatePID(PID::KPID &), void savePID(PID::KPID &), void onEnable(bool), PID::KPID &pid) : onEnable(onEnable), PIDupdate(updatePID), PIDsave(savePID), PIDvals(pid) {
+BTHandler::BTHandler(void updatePID(PID::KPID), void savePID(PID::KPID), void onEnable(bool), PID::KPID &pid) : onEnable(onEnable), PIDupdate(updatePID), PIDsave(savePID), PIDvals(pid) {
     receivedFlag = false;
     btDataString = "";
     connected = false;
@@ -80,11 +80,12 @@ void BTHandler::receiveData() {
             PIDvals.p = packet.substring(1).toFloat();
             PIDvals.i = packet.substring(packet.indexOf(',') + 1).toFloat();
             PIDvals.d = packet.substring(packet.lastIndexOf(',') + 1).toFloat(); // TODO this might not work(lastInd)
-            if (packet[0] == 'S')
+            this->PIDupdate(PIDvals);
+            if (packet[0] == 'S') {
                 this->PIDsave(PIDvals);
-            else
-                this->PIDupdate(PIDvals);
-            // sendPID();
+                print("PID Saved to EEPROM\n");
+            }
+            sendPID(PIDvals);
             break;
         case 'R': // send requested PID vals
             sendPID(PIDvals);

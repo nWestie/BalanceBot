@@ -7,9 +7,10 @@
 #include "bt.h"
 #include "debug.h"
 #include "myPID.h"
+#include <EEPROM.h>
 
 #define LEDPIN 21
-
+#define EEPROMADDR 32
 class Timer {
     const uint16_t intervalMillis;
     uint32_t nextTriggerTime;
@@ -61,11 +62,12 @@ public:
     }
 };
 
-bool enabled = false;
-
 Battery batt(20);
 
-PID::KPID motorPID = {40.0, 1, .05};
+PID::KPID motorPID = {0, 0, 0};
+double pitchDeg, power, pitchSet;
+PID pidControl(motorPID, &pitchDeg, &power, &pitchSet, REVERSE);
+
 // Motor lMotor = Motor(17, 15, 7, 8); // pwm, dir, enc1, enc2
 // Motor rMotor = Motor(16, 14, 5, 6);
 
@@ -77,9 +79,17 @@ PID::KPID motorPID = {40.0, 1, .05};
 // }
 
 // BT things
-void updatePID(PID::KPID &) {}
-void savePID(PID::KPID &) {}
 void enableReceived(bool);
+// Send PID to PID controller
+void updatePID(PID::KPID pid) { pidControl.SetTunings(pid); }
+// Save PID to EEPROM
+void savePID(PID::KPID pid) { EEPROM.put(EEPROMADDR, pid); }
+// Fetch PID from EEPROM
+PID::KPID recallPID() {
+    PID::KPID vals;
+    return EEPROM.get(EEPROMADDR, vals);
+}
+
 BTHandler bt = BTHandler(updatePID, savePID, enableReceived, motorPID);
 
 // IMU things
@@ -101,6 +111,7 @@ void setup() {
         pinMode(i, OUTPUT);
     pinMode(LEDPIN, OUTPUT);
 
+    motorPID = recallPID();
     attachInterrupt(22, imuInterruptCallback, RISING); // interrupt pin for the mpu
 
     digitalWriteFast(LEDPIN, HIGH);
@@ -145,17 +156,6 @@ void loop() {
         if (flashTimer.hasTimedOut()) // runs at 100 Hz
         {
             Serial.println("Running...");
-            // if (s.length()) {
-            //     Serial.print("Len(");
-            //     Serial.print(s.length());
-            //     Serial.print("): ");
-            //     Serial.print(s);
-            //     // for (unsigned int i = 0; i < s.length(); i++) {
-            //     //     Serial.print(s[i], HEX);
-            //     //     Serial.print(", ");
-            //     // }
-            //     Serial.println();
-            // }
         }
         break;
     case RunState::DISABLING:
@@ -166,9 +166,9 @@ void loop() {
 }
 
 // Called when BT module receives enable or disable signal, transitions state accordingly
-void enableReceived(bool enable){
-    if(enable and state!=RunState::RUNNING)
+void enableReceived(bool enable) {
+    if (enable and state != RunState::RUNNING)
         state = RunState::ENABLING;
-    else if(state!=RunState::IDLE)
+    else if (state != RunState::IDLE)
         state = RunState::DISABLING;
 }

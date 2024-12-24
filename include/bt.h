@@ -14,7 +14,7 @@ struct CTLData // speed, turn, trim, enable
 
 class BTHandler {
 public:
-    BTHandler(void updatePID(PID::KPID &), void savePID(PID::KPID &), void onEnable(bool), PID::KPID &pid);
+    BTHandler(void updatePID(PID::KPID), void savePID(PID::KPID), void onEnable(bool), PID::KPID &pid);
     // sends latest batt voltage, setAngle, and measured angle to controller for diagnostics
     void sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled);
     // sends PID weights to controller
@@ -29,8 +29,8 @@ public:
 
 private:
     void (*onEnable)(bool); // to be called when enable is recieved
-    void (*PIDupdate)(PID::KPID &); // called to update bot PID values
-    void (*PIDsave)(PID::KPID &); // Called to save bot PID values
+    void (*PIDupdate)(PID::KPID); // called to update bot PID values
+    void (*PIDsave)(PID::KPID); // Called to save bot PID values
     PID::KPID &PIDvals;
     const char EOMchar = '/'; // signifies end of all sent/received messages
     String btDataString;
