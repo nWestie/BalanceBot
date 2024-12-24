@@ -29,40 +29,20 @@ public:
     }
 };
 
-// accounts for voltage divider, analog input range, and averaging process
-constexpr float battMult = (3.3 * 12.9) / (3 * 1024) / 8;
 class Battery {
 public:
-    Battery(uint8_t pin_name) : pin(pin_name) {
-        float reading = analogRead(pin) * battMult;
-        for (int i = 0; i < 8; i++)
-            smooth[i] = reading;
-        voltageAvg = reading * 8;
-    };
+    Battery(uint8_t pin_name) : pin(pin_name) {}
 
-    // should be called at a regular interval
-    void updateVoltage() {
-        btInd = btTailInd;
-        btTailInd = (btTailInd + 1) & 0x07; // loops til 7 then starts back at 0
+    //  returns the averaged voltage
+    float getVoltage() { return analogRead(pin) * battMult; }
 
-        smooth[btInd] = analogRead(pin) * battMult;
-        voltageAvg += smooth[btInd];
-        voltageAvg -= smooth[btTailInd];
-    };
-
-    double getVoltage() { return voltageAvg; }
-
-    // true if voltage is below threshold of 11.2v
-    boolean lowVoltage() { return voltageAvg < 11.2; }
+    // true if voltage is below threshold of 11.0V
+    boolean lowVoltage(float voltage) { return voltage < 11.0; }
 
 private:
     const uint8_t pin;
-
-    float smooth[8];
-    uint8_t btInd = 0;     // index of newest value
-    uint8_t btTailInd = 1; // index of oldest value
-
-    float voltageAvg;
+    // accounts for voltage divider, analog input range, and averaging process
+    const float battMult = (3.3 * 12.9) / (3 * 1024);
 };
 
 class Motor {
@@ -83,7 +63,6 @@ public:
 
 bool enabled = false;
 
-Timer battTimer(100);
 Battery batt(20);
 
 PID::KPID motorPID = {40.0, 1, .05};
@@ -132,14 +111,6 @@ Timer flashTimer(500);
 
 void loop() {
     /// loop over all the timers and do the shit when da shit needs done
-    if (battTimer.hasTimedOut()) // 10 Hz
-    {
-        batt.updateVoltage();
-        // disable if low voltage
-        if (enabled && batt.lowVoltage())
-            ;
-    }
-
     if (imu_interrupt) {
         imu_interrupt = false;
         imu.update();
