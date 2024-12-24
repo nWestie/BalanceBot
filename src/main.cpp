@@ -79,7 +79,8 @@ PID::KPID motorPID = {40.0, 1, .05};
 // BT things
 void updatePID(PID::KPID &) {}
 void savePID(PID::KPID &) {}
-BTHandler bt = BTHandler(updatePID, savePID, motorPID);
+void enableReceived(bool);
+BTHandler bt = BTHandler(updatePID, savePID, enableReceived, motorPID);
 
 // IMU things
 IMU imu;
@@ -107,36 +108,67 @@ void setup() {
     digitalWriteFast(LEDPIN, LOW);
 }
 
-Timer flashTimer(500);
+enum class RunState {
+    IDLE,
+    ENABLING,
+    RUNNING,
+    DISABLING
+};
+RunState state = RunState::IDLE;
 
+Timer flashTimer(500);
 void loop() {
+
     /// loop over all the timers and do the shit when da shit needs done
     if (imu_interrupt) {
         imu_interrupt = false;
         imu.update();
     }
-
-    if (updateControl.hasTimedOut()) // runs at 100 Hz
-    {
-        String s = bt.recDataTest();
-        if (s.length()) {
-            Serial.print("Len(");
-            Serial.print(s.length());
-            Serial.print("): ");
-            Serial.print(s);
-            for (unsigned int i = 0; i < s.length(); i++) {
-                Serial.print(s[i], HEX);
-                Serial.print(", ");
-            }
-            Serial.println();
-        }
-    }
-    if (!enabled) {
+    bt.receiveData();
+    // TODO: Check low voltage
+    switch (state) {
+    case RunState::IDLE:
         if (flashTimer.hasTimedOut()) // 2 Hz, 500ms on/off
         {
+            Serial.println("Idling...");
             digitalWriteFast(LEDPIN, !digitalReadFast(LEDPIN)); // toggle LED
             bt.print(String(batt.getVoltage()) + "\n");
         }
-        return;
+        break;
+    case RunState::ENABLING:
+        digitalWriteFast(LEDPIN, LOW); // Make sure LED is off
+
+        Serial.println("Enabling...");
+        state = RunState::RUNNING;
+        break;
+    case RunState::RUNNING:
+        if (flashTimer.hasTimedOut()) // runs at 100 Hz
+        {
+            Serial.println("Running...");
+            // if (s.length()) {
+            //     Serial.print("Len(");
+            //     Serial.print(s.length());
+            //     Serial.print("): ");
+            //     Serial.print(s);
+            //     // for (unsigned int i = 0; i < s.length(); i++) {
+            //     //     Serial.print(s[i], HEX);
+            //     //     Serial.print(", ");
+            //     // }
+            //     Serial.println();
+            // }
+        }
+        break;
+    case RunState::DISABLING:
+        Serial.println("Disabling...");
+        state = RunState::IDLE;
+        break;
     }
+}
+
+// Called when BT module receives enable or disable signal, transitions state accordingly
+void enableReceived(bool enable){
+    if(enable and state!=RunState::RUNNING)
+        state = RunState::ENABLING;
+    else if(state!=RunState::IDLE)
+        state = RunState::DISABLING;
 }

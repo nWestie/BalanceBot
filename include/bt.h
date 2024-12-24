@@ -7,14 +7,14 @@
 
 struct CTLData // speed, turn, trim, enable
 {
+    float trim;   // set point trim in deg
     int8_t speed; // range -128 to 127
     int8_t turn;  // range -128 to 127
-    float trim;   // set point trim in deg
 };
 
 class BTHandler {
 public:
-    BTHandler(void updatePID(PID::KPID &), void savePID(PID::KPID &), PID::KPID &pid);
+    BTHandler(void updatePID(PID::KPID &), void savePID(PID::KPID &), void onEnable(bool), PID::KPID &pid);
     // sends latest batt voltage, setAngle, and measured angle to controller for diagnostics
     void sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled);
     // sends PID weights to controller
@@ -28,8 +28,9 @@ public:
     String recDataTest();
 
 private:
-    void (*PIDupdate)(PID::KPID &);
-    void (*PIDsave)(PID::KPID &);
+    void (*onEnable)(bool); // to be called when enable is recieved
+    void (*PIDupdate)(PID::KPID &); // called to update bot PID values
+    void (*PIDsave)(PID::KPID &); // Called to save bot PID values
     PID::KPID &PIDvals;
     const char EOMchar = '/'; // signifies end of all sent/received messages
     String btDataString;

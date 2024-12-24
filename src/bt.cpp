@@ -8,7 +8,7 @@
 
 // 'random' codes for disable an enable, to reduce chance of false triggers
 
-BTHandler::BTHandler(void updatePID(PID::KPID &), void savePID(PID::KPID &), PID::KPID &pid) : PIDupdate(updatePID), PIDsave(savePID), PIDvals(pid) {
+BTHandler::BTHandler(void updatePID(PID::KPID &), void savePID(PID::KPID &), void onEnable(bool), PID::KPID &pid) : onEnable(onEnable), PIDupdate(updatePID), PIDsave(savePID), PIDvals(pid) {
     receivedFlag = false;
     btDataString = "";
     connected = false;
@@ -61,18 +61,19 @@ void BTHandler::receiveData() {
         switch (packet[0])         // switch on first character
         {
         case 'X': // Get joystick commands
-            ctlData.speed = packet.substring(1).toInt();
-            packet = packet.substring(packet.indexOf(',') + 1);
-            ctlData.turn = packet.toInt();
+            ctlData.turn = packet.substring(1).toInt();
+            packet = packet.substring(packet.indexOf(',') + 2);
+            ctlData.speed = packet.toInt();
             break;
         case 'T': // Get Trim commands
             ctlData.trim = packet.substring(1).toFloat();
+            Serial.println(ctlData.trim, 2);
             break;
         case 'E':
-            // TODO: Implement Enable
+            onEnable(true);
             break;
         case 'D':
-            // TODO: Implement Disable
+            onEnable(false);
             break;
         case 'S': // save PID to EEprom
         case 'P': // read updated PID values
@@ -100,7 +101,6 @@ String BTHandler::recDataTest() {
     if (!Serial2.available())
         return "";
     btDataString += Serial2.readString();
-    Serial.println(btDataString);
     int endCharIndex = btDataString.indexOf(EOMchar);
     if (endCharIndex != -1) {
         String packet = btDataString.substring(0, endCharIndex);
@@ -110,5 +110,5 @@ String BTHandler::recDataTest() {
     return "";
 };
 void BTHandler::print(String str) {
-    Serial2.println("M" + str + "/");
+    Serial2.print("M" + str + "/");
 };
