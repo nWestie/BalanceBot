@@ -36,7 +36,7 @@ bool IMU::setup(float *pitchOutput) {
 
     // make sure it worked (returns 0 if so)
     if (devStatus == 0) {
-        // setOffsets(imuOffsets);
+        setOffsets(imuOffsets);
         // Calibration Time: generate offsets and calibrate the MPU6050
         // mpu.CalibrateAccel(6);
         // mpu.CalibrateGyro(6);
@@ -45,11 +45,6 @@ bool IMU::setup(float *pitchOutput) {
         DPRINTLN(F("Enabling DMP..."));
         mpu.setDMPEnabled(true);
 
-        // set our DMP Ready flag so the main loop() function knows it's okay to use it
-        // dmpReady = true;
-
-        // get expected DMP packet size for later comparison
-        // packetSize = mpu.dmpGetFIFOPacketSize();
         return true;
     } else {
         // ERROR!

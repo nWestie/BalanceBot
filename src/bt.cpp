@@ -6,8 +6,6 @@
 #include "bt.h"
 #include "myPID.h"
 
-// 'random' codes for disable an enable, to reduce chance of false triggers
-
 BTHandler::BTHandler(void updatePID(PID::KPID), void savePID(PID::KPID), void onEnable(bool), PID::KPID &pid) : onEnable(onEnable), PIDupdate(updatePID), PIDsave(savePID), PIDvals(pid) {
     receivedFlag = false;
     btDataString = "";
@@ -46,7 +44,6 @@ void BTHandler::receiveData() {
     if (!Serial2.available())
         return;
     btDataString += Serial2.readString();
-    // Serial.println(btDataString);
     int endCharIndex = btDataString.indexOf(EOMchar);
     if (btDataString.length() > 255)
         Serial.println("WARN - large read buffer");
@@ -79,7 +76,7 @@ void BTHandler::receiveData() {
         case 'P': // read updated PID values
             PIDvals.p = packet.substring(1).toFloat();
             PIDvals.i = packet.substring(packet.indexOf(',') + 1).toFloat();
-            PIDvals.d = packet.substring(packet.lastIndexOf(',') + 1).toFloat(); // TODO this might not work(lastInd)
+            PIDvals.d = packet.substring(packet.lastIndexOf(',') + 1).toFloat();
             this->PIDupdate(PIDvals);
             if (packet[0] == 'S') {
                 this->PIDsave(PIDvals);
@@ -97,7 +94,7 @@ void BTHandler::receiveData() {
 };
 
 CTLData BTHandler::getCTL() { return ctlData; }
-void BTHandler::sendBatt(float voltage) { Serial2.print("V" + String(voltage)+"/"); }
+void BTHandler::sendBatt(float voltage) { Serial2.print("V" + String(voltage) + "/"); }
 void BTHandler::print(String str) {
     Serial2.print("M" + str + "/");
 };

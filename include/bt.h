@@ -26,10 +26,11 @@ public:
     void receiveData();
     CTLData getCTL();
     void sendBatt(float voltage);
+
 private:
-    void (*onEnable)(bool); // to be called when enable is recieved
+    void (*onEnable)(bool);       // to be called when enable is received
     void (*PIDupdate)(PID::KPID); // called to update bot PID values
-    void (*PIDsave)(PID::KPID); // Called to save bot PID values
+    void (*PIDsave)(PID::KPID);   // Called to save bot PID values
     PID::KPID &PIDvals;
     const char EOMchar = '/'; // signifies end of all sent/received messages
     String btDataString;

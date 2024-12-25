@@ -13,23 +13,22 @@
  *    The parameters specified here are those for for which we can't set up
  *    reliable defaults, so we need to have the user set them.
  */
-PID::PID(KPID PidGains, float *Input, float *Output, float *Setpoint, bool POnError)
-{
-   pOnE = POnError;
+PID::PID(KPID PidGains, float *Input, float *Output, float *Setpoint, bool POnError) {
+    pOnE = POnError;
 
-   myOutput = Output;
-   myInput = Input;
-   mySetpoint = Setpoint;
+    myOutput = Output;
+    myInput = Input;
+    mySetpoint = Setpoint;
 
-   outMin = -255; // default output limit corresponds to
-   outMax = 255;  // the arduino pwm limits
+    outMin = -255; // default output limit corresponds to
+    outMax = 255;  // the arduino pwm limits
 
-   SampleTime = 100; // default Controller Sample Time is 0.1 seconds
+    SampleTime = 100; // default Controller Sample Time is 0.1 seconds
 
-   // PID::SetControllerDirection(ControllerDirection);
-   PID::SetTunings(PidGains);
+    // PID::SetControllerDirection(ControllerDirection);
+    PID::SetTunings(PidGains);
 
-   // lastTime = millis() - SampleTime;
+    // lastTime = millis() - SampleTime;
 }
 
 /* Compute()
@@ -38,41 +37,40 @@ PID::PID(KPID PidGains, float *Input, float *Output, float *Setpoint, bool POnEr
  *   pid Output needs to be computed.  returns true when the output is computed,
  *   false when nothing has been done.
  */
-void PID::Compute()
-{
-   // Compute all the working error variables
-   float input = *myInput;
-   float error = *mySetpoint - input;
-   float dInput = (input - lastInput); // change in input ()
+void PID::Compute() {
+    // Compute all the working error variables
+    float input = *myInput;
+    float error = *mySetpoint - input;
+    float dInput = (input - lastInput); // change in input ()
 
-   outputSum += (tunings.i * error); // integral term
+    outputSum += (tunings.i * error); // integral term
 
-   float output;
-   if (pOnE)                      // Add Proportional on Error, if P_ON_E is specified
-      output = tunings.p * error; // this is what I'll be using
-   else                           // Add Proportional on Measurement, if P_ON_M is specified
-   {
-      output = 0;
-      outputSum -= tunings.p * dInput;
-   }
+    float output;
+    if (pOnE)                       // Add Proportional on Error, if P_ON_E is specified
+        output = tunings.p * error; // this is what I'll be using
+    else                            // Add Proportional on Measurement, if P_ON_M is specified
+    {
+        output = 0;
+        outputSum -= tunings.p * dInput;
+    }
 
-   // clamp integrator to output range(anti-windup)
-   if (outputSum > outMax)
-      outputSum = outMax;
-   else if (outputSum < outMin)
-      outputSum = outMin;
+    // clamp integrator to output range(anti-windup)
+    if (outputSum > outMax)
+        outputSum = outMax;
+    else if (outputSum < outMin)
+        outputSum = outMin;
 
-   /*Compute Rest of PID Output*/
-   output += outputSum - tunings.d * dInput;
+    /*Compute Rest of PID Output*/
+    output += outputSum - tunings.d * dInput;
 
-   // Clamp output
-   if (output > outMax)
-      output = outMax;
-   else if (output < outMin)
-      output = outMin;
-   *myOutput = output;
+    // Clamp output
+    if (output > outMax)
+        output = outMax;
+    else if (output < outMin)
+        output = outMin;
+    *myOutput = output;
 
-   lastInput = input;
+    lastInput = input;
 }
 
 /* SetTunings(...)
@@ -80,29 +78,27 @@ void PID::Compute()
  * it's called automatically from the constructor, but tunings can also
  * be adjusted on the fly during normal operation
  */
-void PID::SetTunings(KPID NewTunings)
-{
-   // pOn = POn;
-   // pOnE = POn == P_ON_E;
+void PID::SetTunings(KPID NewTunings) {
+    // pOn = POn;
+    // pOnE = POn == P_ON_E;
 
-   float SampleTimeInSec = ((double)SampleTime) / 1000;
-   tunings.p = NewTunings.p;
-   tunings.i = NewTunings.i * SampleTimeInSec;
-   tunings.d = NewTunings.d / SampleTimeInSec;
+    float SampleTimeInSec = ((double)SampleTime) / 1000;
+    tunings.p = NewTunings.p;
+    tunings.i = NewTunings.i * SampleTimeInSec;
+    tunings.d = NewTunings.d / SampleTimeInSec;
 }
 
 /* Initialize()
  *	does all the things that need to happen to ensure a bumpless transfer
  *  from manual to automatic mode.
  */
-void PID::Initialize()
-{
-   outputSum = *myOutput;
-   lastInput = *myInput;
-   if (outputSum > outMax)
-      outputSum = outMax;
-   else if (outputSum < outMin)
-      outputSum = outMin;
+void PID::Initialize() {
+    outputSum = *myOutput;
+    lastInput = *myInput;
+    if (outputSum > outMax)
+        outputSum = outMax;
+    else if (outputSum < outMin)
+        outputSum = outMin;
 }
 
 /* Status Funcions*************************************************************

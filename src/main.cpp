@@ -34,7 +34,7 @@ class Battery {
 public:
     Battery(uint8_t pin_name) : pin(pin_name) {}
 
-    //  returns the averaged voltage
+    //  returns the battery voltage
     float getVoltage() { return analogRead(pin) * battMult; }
 
     // true if voltage is below threshold of 11.0V
@@ -42,7 +42,7 @@ public:
 
 private:
     const uint8_t pin;
-    // accounts for voltage divider, analog input range, and averaging process
+    // accounts for voltage divider and analog input range
     const float battMult = (3.3 * 12.9) / (3 * 1024);
 };
 
@@ -143,7 +143,7 @@ void loop() {
     if (updateControl.hasTimedOut()) // runs at 100 Hz
     {
         float volt = batt.getVoltage();
-        bt.sendUpdate(volt, 90, measuredPitch, state==RunState::RUNNING);
+        bt.sendUpdate(volt, 90, measuredPitch, state == RunState::RUNNING);
 
         switch (state) {
         case RunState::IDLE:
@@ -159,10 +159,10 @@ void loop() {
             state = RunState::RUNNING;
             break;
         case RunState::RUNNING:
-            // if (measuredPitch < 40 || measuredPitch > 130){// halts if robot tips over
-            //     state = RunState::DISABLING;
-            //     bt.print("Disabling, fell over");
-            // }
+            if (measuredPitch < 40 || measuredPitch > 130){// halts if robot tips over
+                state = RunState::DISABLING;
+                bt.print("Disabling, fell over");
+            }
             if (batt.lowVoltage(volt)) {
                 bt.print("Disabling, low voltage");
                 state = RunState::DISABLING;
