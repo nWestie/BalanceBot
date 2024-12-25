@@ -65,8 +65,8 @@ public:
 Battery batt(20);
 
 PID::KPID motorPID = {0, 0, 0};
-double pitchDeg, power, pitchSet;
-PID pidControl(motorPID, &pitchDeg, &power, &pitchSet, REVERSE);
+float measuredPitch, power, pitchSet;
+PID pidControl(motorPID, &measuredPitch, &power, &pitchSet, REVERSE);
 
 // Motor lMotor = Motor(17, 15, 7, 8); // pwm, dir, enc1, enc2
 // Motor rMotor = Motor(16, 14, 5, 6);
@@ -96,10 +96,10 @@ BTHandler bt = BTHandler(updatePID, savePID, enableReceived, motorPID);
 IMU imu;
 volatile bool imu_interrupt = false;
 void imuInterruptCallback() { imu_interrupt = true; }
-float measuredPitch;
 
+// Timer for control loop
 Timer updateControl(10);
-Timer updateStats(50);
+// Timer sendVoltage(200); // sends the phone specific voltage updates
 
 void setup() {
     Serial.begin(38400);
@@ -135,33 +135,44 @@ void loop() {
         imu_interrupt = false;
         imu.update();
     }
+    // if (sendVoltage.hasTimedOut()) {
+    //     bt.sendBatt(batt.getVoltage());
+    // }
     bt.receiveData();
     // TODO: Check low voltage
-    switch (state) {
-    case RunState::IDLE:
-        if (flashTimer.hasTimedOut()) // 2 Hz, 500ms on/off
-        {
-            Serial.println("Idling...");
-            digitalWriteFast(LEDPIN, !digitalReadFast(LEDPIN)); // toggle LED
-            bt.print(String(batt.getVoltage()) + "\n");
-        }
-        break;
-    case RunState::ENABLING:
-        digitalWriteFast(LEDPIN, LOW); // Make sure LED is off
+    if (updateControl.hasTimedOut()) // runs at 100 Hz
+    {
+        float volt = batt.getVoltage();
+        bt.sendUpdate(volt, 90, measuredPitch, state==RunState::RUNNING);
 
-        Serial.println("Enabling...");
-        state = RunState::RUNNING;
-        break;
-    case RunState::RUNNING:
-        if (flashTimer.hasTimedOut()) // runs at 100 Hz
-        {
-            Serial.println("Running...");
+        switch (state) {
+        case RunState::IDLE:
+            if (flashTimer.hasTimedOut()) // 2 Hz, 500ms on/off
+            {
+                Serial.println("Idling...");
+                digitalWriteFast(LEDPIN, !digitalReadFast(LEDPIN)); // toggle LED
+            }
+            break;
+        case RunState::ENABLING:
+            digitalWriteFast(LEDPIN, LOW); // Make sure LED is off
+            Serial.println("Enabling...");
+            state = RunState::RUNNING;
+            break;
+        case RunState::RUNNING:
+            // if (measuredPitch < 40 || measuredPitch > 130){// halts if robot tips over
+            //     state = RunState::DISABLING;
+            //     bt.print("Disabling, fell over");
+            // }
+            if (batt.lowVoltage(volt)) {
+                bt.print("Disabling, low voltage");
+                state = RunState::DISABLING;
+            }
+            break;
+        case RunState::DISABLING:
+            Serial.println("Disabling...");
+            state = RunState::IDLE;
+            break;
         }
-        break;
-    case RunState::DISABLING:
-        Serial.println("Disabling...");
-        state = RunState::IDLE;
-        break;
     }
 }
 

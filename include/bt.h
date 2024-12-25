@@ -16,7 +16,7 @@ class BTHandler {
 public:
     BTHandler(void updatePID(PID::KPID), void savePID(PID::KPID), void onEnable(bool), PID::KPID &pid);
     // sends latest batt voltage, setAngle, and measured angle to controller for diagnostics
-    void sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled);
+    void sendUpdate(float voltage, float setAngle, float measuredAngle, bool isEnabled);
     // sends PID weights to controller
     void sendPID(PID::KPID &);
     // prints a string to controller console
@@ -25,8 +25,7 @@ public:
     /// will call provided PIDUpdate and PIDsave as needed.
     void receiveData();
     CTLData getCTL();
-    String recDataTest();
-
+    void sendBatt(float voltage);
 private:
     void (*onEnable)(bool); // to be called when enable is recieved
     void (*PIDupdate)(PID::KPID); // called to update bot PID values

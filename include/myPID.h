@@ -23,7 +23,7 @@ public:
   // constructor.  links the PID to the Input, Output, and
   // Setpoint.  Initial tuning parameters are also set here.
   // (overload for specifying proportional mode)
-  PID(KPID, double *, double *, double *, bool);
+  PID(KPID, float *, float *, float *, bool);
 
   void Compute(); // * performs the PID calculation.  it should be
                   //   called every time loop() cycles. ON/OFF and
@@ -41,16 +41,16 @@ private:
 
   KPID tunings;
 
-  double *myInput;    // * Pointers to the Input, Output, and Setpoint variables
-  double *myOutput;   //   This creates a hard link between the variables and the
-  double *mySetpoint; //   PID, freeing the user from having to constantly tell us
+  float *myInput;    // * Pointers to the Input, Output, and Setpoint variables
+  float *myOutput;   //   This creates a hard link between the variables and the
+  float *mySetpoint; //   PID, freeing the user from having to constantly tell us
                       //   what these values are.  with pointers we'll just know.
 
   // unsigned long lastTime;
-  double outputSum, lastInput;
+  float outputSum, lastInput;
 
   unsigned int SampleTime;
-  double outMin, outMax;
+  float outMin, outMax;
   bool pOnE; // True if proportional on error, false for proportional on measurement
 };
 #endif

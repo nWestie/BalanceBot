@@ -13,7 +13,7 @@
  *    The parameters specified here are those for for which we can't set up
  *    reliable defaults, so we need to have the user set them.
  */
-PID::PID(KPID PidGains, double *Input, double *Output, double *Setpoint, bool POnError)
+PID::PID(KPID PidGains, float *Input, float *Output, float *Setpoint, bool POnError)
 {
    pOnE = POnError;
 
@@ -41,13 +41,13 @@ PID::PID(KPID PidGains, double *Input, double *Output, double *Setpoint, bool PO
 void PID::Compute()
 {
    // Compute all the working error variables
-   double input = *myInput;
-   double error = *mySetpoint - input;
-   double dInput = (input - lastInput); // change in input ()
+   float input = *myInput;
+   float error = *mySetpoint - input;
+   float dInput = (input - lastInput); // change in input ()
 
    outputSum += (tunings.i * error); // integral term
 
-   double output;
+   float output;
    if (pOnE)                      // Add Proportional on Error, if P_ON_E is specified
       output = tunings.p * error; // this is what I'll be using
    else                           // Add Proportional on Measurement, if P_ON_M is specified
@@ -85,7 +85,7 @@ void PID::SetTunings(KPID NewTunings)
    // pOn = POn;
    // pOnE = POn == P_ON_E;
 
-   double SampleTimeInSec = ((double)SampleTime) / 1000;
+   float SampleTimeInSec = ((double)SampleTime) / 1000;
    tunings.p = NewTunings.p;
    tunings.i = NewTunings.i * SampleTimeInSec;
    tunings.d = NewTunings.d / SampleTimeInSec;

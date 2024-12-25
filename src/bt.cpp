@@ -18,9 +18,10 @@ BTHandler::BTHandler(void updatePID(PID::KPID), void savePID(PID::KPID), void on
     // Serial BT should not wait for characters when reading
     Serial2.setTimeout(0);
 }
-void BTHandler::sendUpdate(double voltage, double setAngle, double measuredAngle, double isEnabled) {
+void BTHandler::sendUpdate(float voltage, float setAngle, float measuredAngle, bool isEnabled) {
     Serial2.print("U");
     Serial2.print(millis());
+    Serial2.print(",");
     Serial2.print(isEnabled);
     Serial2.print(",");
     Serial2.print(voltage);
@@ -28,7 +29,6 @@ void BTHandler::sendUpdate(double voltage, double setAngle, double measuredAngle
     Serial2.print(setAngle);
     Serial2.print(",");
     Serial2.print(measuredAngle);
-    Serial2.print(",");
     Serial2.print(EOMchar);
 }
 void BTHandler::sendPID(PID::KPID &vals) {
@@ -97,19 +97,7 @@ void BTHandler::receiveData() {
 };
 
 CTLData BTHandler::getCTL() { return ctlData; }
-
-String BTHandler::recDataTest() {
-    if (!Serial2.available())
-        return "";
-    btDataString += Serial2.readString();
-    int endCharIndex = btDataString.indexOf(EOMchar);
-    if (endCharIndex != -1) {
-        String packet = btDataString.substring(0, endCharIndex);
-        btDataString = btDataString.substring(endCharIndex + 1);
-        return packet;
-    }
-    return "";
-};
+void BTHandler::sendBatt(float voltage) { Serial2.print("V" + String(voltage)+"/"); }
 void BTHandler::print(String str) {
     Serial2.print("M" + str + "/");
 };
