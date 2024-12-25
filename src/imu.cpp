@@ -3,7 +3,7 @@
 // -5372.00000,  -2575.00000,  2945.00000,  58.00000,  4.00000,  -15.00000
 #include <IMU.h>
 // const int imuOffsets[] = {-3384, -2533, 1151, 60, -6, 22};
-const int imuOffsets[] = {-3364, -2515, 1163, 58, 4, -15}; //new values
+const int imuOffsets[] = {-3363, -2506, 1162, 56, 3, -30}; // new values
 
 void IMU::setOffsets(const int TheOffsets[6]) {
     mpu.setXAccelOffset(TheOffsets[0]);
@@ -38,9 +38,9 @@ bool IMU::setup(float *pitchOutput) {
     if (devStatus == 0) {
         // setOffsets(imuOffsets);
         // Calibration Time: generate offsets and calibrate the MPU6050
-        mpu.CalibrateAccel(6);
-        mpu.CalibrateGyro(6);
-        mpu.PrintActiveOffsets();
+        // mpu.CalibrateAccel(6);
+        // mpu.CalibrateGyro(6);
+        // mpu.PrintActiveOffsets();
         // turn on the DMP, now that it's ready
         DPRINTLN(F("Enabling DMP..."));
         mpu.setDMPEnabled(true);
@@ -68,9 +68,12 @@ bool IMU::update() {
     // read a packet from FIFO
     if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) { // Get the Latest packet
         mpu.dmpGetQuaternion(&q, fifoBuffer);
-        mpu.dmpGetGravity(&gravity, &q);
-        mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-        *pOut = ypr[1] * 57.2957795131f;
+        // mpu.dmpGetGravity(&gravity, &q);
+
+        // pitch: (nose up/down, about Y axis)
+        *pOut = atan2(2 * q.x * q.z - 2 * q.w * q.y, q.z * q.z - q.y * q.y - q.x * q.x + q.w * q.w) * 57.2957795131f;
+        // mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+        // *pOut = ypr[1] * 57.2957795131f;
         return true;
     }
     return false;
