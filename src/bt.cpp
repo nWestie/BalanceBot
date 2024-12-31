@@ -20,7 +20,7 @@ void BTHandler::sendUpdate(float voltage, float setAngle, float measuredAngle, b
     Serial2.print("U");
     Serial2.print(millis());
     Serial2.print(",");
-    Serial2.print(isEnabled);
+    Serial2.print((int)isEnabled);
     Serial2.print(",");
     Serial2.print(voltage);
     Serial2.print(",");

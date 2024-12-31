@@ -35,10 +35,16 @@ private:
 
 class Battery {
 public:
-    Battery(uint8_t pin_name) : pin(pin_name) {}
+    Battery(uint8_t pin_name) : pin(pin_name) {
+        smooth_volt = getVoltage();
+    }
 
     //  returns the battery voltage
-    float getVoltage() { return analogRead(pin) * battMult; }
+    float getVoltage() {
+        float v = analogRead(pin) * battMult;
+        smooth_volt = v * smooth_const + smooth_volt * (1 - smooth_const);
+        return smooth_volt;
+    }
 
     // true if voltage is below threshold of 11.0V
     boolean lowVoltage(float voltage) { return voltage < 11.0; }
@@ -47,21 +53,28 @@ private:
     const uint8_t pin;
     // accounts for voltage divider and analog input range
     const float battMult = (3.3 * 12.9) / (3 * 1024);
+    const float smooth_const = .2;
+    float smooth_volt;
 };
 
 class Motor {
 private:
-    const uint8_t dir;
-    const uint8_t pwm;
+    const uint8_t dirPin;
+    const uint8_t pwmPin;
 
 public:
     const Encoder enc;
 
-    Motor(uint8_t pwmPin, uint8_t dirPin, uint8_t encoder1, uint8_t encoder2) : dir(dirPin), pwm(pwmPin), enc(encoder1, encoder2) {}
+    Motor(uint8_t pwmPin, uint8_t dirPin, uint8_t encoder1, uint8_t encoder2) : dirPin(dirPin), pwmPin(pwmPin), enc(encoder1, encoder2) {}
 
-    void drive(byte pwm, byte dir) {
-        digitalWriteFast(dir, dir);
-        analogWrite(pwm, pwm);
+    // void drive(byte pwm, byte dir) {
+    //     digitalWriteFast(dir, dir);
+    //     analogWrite(pwm, pwm);
+    // }
+    // MUST be in range -128 to 127
+    void drive(int speed) {
+        digitalWriteFast(dirPin, speed > 0);
+        analogWrite(pwmPin, abs(speed * 2));
     }
 };
 
@@ -71,16 +84,15 @@ Battery batt(20);
 Timer controlTimer(10);
 // Timer sendVoltage(200); // sends the phone specific voltage updates
 PID::KPID motorPID = {0, 0, 0};
-float measuredPitch, power, pitchSet;
-PID pidControl(motorPID, &measuredPitch, &power, &pitchSet, controlTimer.getInterval(), REVERSE);
+PID pidControl(motorPID, controlTimer.getInterval(), REVERSE);
 
 Motor lMotor = Motor(17, 15, 7, 8); // pwm, dir, enc1, enc2
 Motor rMotor = Motor(16, 14, 5, 6);
 
 // stops both motors
 void fullStop() {
-    lMotor.drive(0, 1);
-    rMotor.drive(0, 1);
+    lMotor.drive(0);
+    rMotor.drive(0);
 }
 
 // BT things
@@ -99,6 +111,7 @@ BTHandler bt = BTHandler(updatePID, savePID, enableReceived, motorPID);
 
 // IMU things
 IMU imu;
+float measuredPitch; // IMU angle reading
 volatile bool imu_interrupt = false;
 void imuInterruptCallback() { imu_interrupt = true; }
 
@@ -112,7 +125,10 @@ void setup() {
         pinMode(i, OUTPUT);
     pinMode(LEDPIN, OUTPUT);
 
+    // fetch PID from EEPROM
     motorPID = recallPID();
+    updatePID(motorPID);
+
     attachInterrupt(22, imuInterruptCallback, RISING); // interrupt pin for the mpu
 
     digitalWriteFast(LEDPIN, HIGH);
@@ -129,7 +145,7 @@ enum class RunState {
 RunState state = RunState::IDLE;
 
 Timer flashTimer(500);
-float voltage = 12.0;
+float voltage = 12.0, targetAngle = 90;
 void loop() {
 
     /// loop over all the timers and do the shit when da shit needs done
@@ -141,26 +157,22 @@ void loop() {
     //     bt.sendBatt(batt.getVoltage());
     // }
     bt.receiveData();
-    // TODO: Check low voltage
     if (controlTimer.hasTimedOut()) // runs at 100 Hz
     {
+        CTLData ctl = bt.getCTL();
         switch (state) {
         case RunState::IDLE:
-            if (flashTimer.hasTimedOut()) // 2 Hz, 500ms on/off
-            {
-                Serial.println("Idling...");
+            if (flashTimer.hasTimedOut())                           // 2 Hz, 500ms on/off
                 digitalWriteFast(LEDPIN, !digitalReadFast(LEDPIN)); // toggle LED
-            }
             break;
 
         case RunState::ENABLING:
             digitalWriteFast(LEDPIN, LOW); // Make sure LED is off
-            Serial.println("Enabling...");
+            bt.print("Enabled!");
             state = RunState::RUNNING;
             break;
 
-        case RunState::RUNNING:
-
+        case RunState::RUNNING: {
             if (measuredPitch < 40 || measuredPitch > 130) { // halts if robot tips over
                 state = RunState::DISABLING;
                 bt.print("Disabling, fell over");
@@ -169,16 +181,23 @@ void loop() {
                 bt.print("Disabling, low voltage");
                 state = RunState::DISABLING;
             }
-            
-            break;
 
+            // balancing control
+            targetAngle = 90 + ctl.speed / 12.0 + ctl.trim;
+            // power output should be in range of -128 to 127
+            float power = - pidControl.compute(measuredPitch, targetAngle);
+            lMotor.drive(power);
+            rMotor.drive(power);
+            break;
+        }
         case RunState::DISABLING:
-            Serial.println("Disabling...");
+            fullStop();
+            bt.print("Disabled");
             state = RunState::IDLE;
             break;
         }
         voltage = batt.getVoltage();
-        bt.sendUpdate(voltage, 90, measuredPitch, state == RunState::RUNNING);
+        bt.sendUpdate(voltage, targetAngle, measuredPitch, state == RunState::RUNNING);
     }
 }
 

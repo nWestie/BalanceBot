@@ -31,8 +31,8 @@ private:
     void (*onEnable)(bool);       // to be called when enable is received
     void (*PIDupdate)(PID::KPID); // called to update bot PID values
     void (*PIDsave)(PID::KPID);   // Called to save bot PID values
-    PID::KPID &PIDvals;
-    const char EOMchar = '/'; // signifies end of all sent/received messages
+    PID::KPID &PIDvals;           // Referece to the PID values used by the bot
+    const char EOMchar = '/';     // signifies end of all sent/received messages
     String btDataString;
     bool receivedFlag;
     uint32_t lastPacketTime;
