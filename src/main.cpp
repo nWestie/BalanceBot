@@ -12,12 +12,9 @@
 #define LEDPIN 21
 #define EEPROMADDR 32
 class Timer {
-    const uint16_t intervalMillis;
-    uint32_t nextTriggerTime;
-
 public:
     // Interval in milliseconds
-    Timer(uint16_t interval) : intervalMillis(interval), nextTriggerTime(millis() + interval) {}
+    Timer(uint16_t interval) : interval_ms(interval), nextTriggerTime(millis() + interval) {}
 
     // if timer is expired, returns true and resets the timer.
     bool hasTimedOut() {
@@ -25,9 +22,15 @@ public:
         if (t < nextTriggerTime) {
             return false;
         }
-        nextTriggerTime = t + intervalMillis;
+        nextTriggerTime = t + interval_ms;
         return true;
     }
+    // return timer interval in milliseconds
+    uint16_t getInterval() { return interval_ms; }
+
+private:
+    const uint16_t interval_ms;
+    uint32_t nextTriggerTime;
 };
 
 class Battery {
@@ -64,19 +67,21 @@ public:
 
 Battery batt(20);
 
+// Timer for control loop
+Timer controlTimer(10);
+// Timer sendVoltage(200); // sends the phone specific voltage updates
 PID::KPID motorPID = {0, 0, 0};
 float measuredPitch, power, pitchSet;
-PID pidControl(motorPID, &measuredPitch, &power, &pitchSet, REVERSE);
+PID pidControl(motorPID, &measuredPitch, &power, &pitchSet, controlTimer.getInterval(), REVERSE);
 
-// Motor lMotor = Motor(17, 15, 7, 8); // pwm, dir, enc1, enc2
-// Motor rMotor = Motor(16, 14, 5, 6);
+Motor lMotor = Motor(17, 15, 7, 8); // pwm, dir, enc1, enc2
+Motor rMotor = Motor(16, 14, 5, 6);
 
 // stops both motors
-// void fullStop()
-// {
-// lMotor.drive(0, 1);
-// rMotor.drive(0, 1);
-// }
+void fullStop() {
+    lMotor.drive(0, 1);
+    rMotor.drive(0, 1);
+}
 
 // BT things
 void enableReceived(bool);
@@ -96,10 +101,6 @@ BTHandler bt = BTHandler(updatePID, savePID, enableReceived, motorPID);
 IMU imu;
 volatile bool imu_interrupt = false;
 void imuInterruptCallback() { imu_interrupt = true; }
-
-// Timer for control loop
-Timer updateControl(10);
-// Timer sendVoltage(200); // sends the phone specific voltage updates
 
 void setup() {
     Serial.begin(38400);
@@ -128,6 +129,7 @@ enum class RunState {
 RunState state = RunState::IDLE;
 
 Timer flashTimer(500);
+float voltage = 12.0;
 void loop() {
 
     /// loop over all the timers and do the shit when da shit needs done
@@ -140,11 +142,8 @@ void loop() {
     // }
     bt.receiveData();
     // TODO: Check low voltage
-    if (updateControl.hasTimedOut()) // runs at 100 Hz
+    if (controlTimer.hasTimedOut()) // runs at 100 Hz
     {
-        float volt = batt.getVoltage();
-        bt.sendUpdate(volt, 90, measuredPitch, state == RunState::RUNNING);
-
         switch (state) {
         case RunState::IDLE:
             if (flashTimer.hasTimedOut()) // 2 Hz, 500ms on/off
@@ -153,26 +152,33 @@ void loop() {
                 digitalWriteFast(LEDPIN, !digitalReadFast(LEDPIN)); // toggle LED
             }
             break;
+
         case RunState::ENABLING:
             digitalWriteFast(LEDPIN, LOW); // Make sure LED is off
             Serial.println("Enabling...");
             state = RunState::RUNNING;
             break;
+
         case RunState::RUNNING:
-            if (measuredPitch < 40 || measuredPitch > 130){// halts if robot tips over
+
+            if (measuredPitch < 40 || measuredPitch > 130) { // halts if robot tips over
                 state = RunState::DISABLING;
                 bt.print("Disabling, fell over");
             }
-            if (batt.lowVoltage(volt)) {
+            if (batt.lowVoltage(voltage)) {
                 bt.print("Disabling, low voltage");
                 state = RunState::DISABLING;
             }
+            
             break;
+
         case RunState::DISABLING:
             Serial.println("Disabling...");
             state = RunState::IDLE;
             break;
         }
+        voltage = batt.getVoltage();
+        bt.sendUpdate(voltage, 90, measuredPitch, state == RunState::RUNNING);
     }
 }
 

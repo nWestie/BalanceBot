@@ -21,7 +21,7 @@ public:
     // constructor.  links the PID to the Input, Output, and
     // Setpoint.  Initial tuning parameters are also set here.
     // (overload for specifying proportional mode)
-    PID(KPID, float *, float *, float *, bool);
+    PID(KPID, float *, float *, float *, unsigned int, bool);
 
     void Compute(); // * performs the PID calculation.  it should be
                     //   called every time loop() cycles. ON/OFF and

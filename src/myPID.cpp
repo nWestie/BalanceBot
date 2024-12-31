@@ -13,7 +13,7 @@
  *    The parameters specified here are those for for which we can't set up
  *    reliable defaults, so we need to have the user set them.
  */
-PID::PID(KPID PidGains, float *Input, float *Output, float *Setpoint, bool POnError) {
+PID::PID(KPID PidGains, float *Input, float *Output, float *Setpoint, unsigned int sampleTime_ms, bool POnError) {
     pOnE = POnError;
 
     myOutput = Output;
@@ -23,7 +23,7 @@ PID::PID(KPID PidGains, float *Input, float *Output, float *Setpoint, bool POnEr
     outMin = -255; // default output limit corresponds to
     outMax = 255;  // the arduino pwm limits
 
-    SampleTime = 100; // default Controller Sample Time is 0.1 seconds
+    SampleTime = sampleTime_ms; // default Controller Sample Time is 0.1 seconds
 
     // PID::SetControllerDirection(ControllerDirection);
     PID::SetTunings(PidGains);
@@ -82,7 +82,7 @@ void PID::SetTunings(KPID NewTunings) {
     // pOn = POn;
     // pOnE = POn == P_ON_E;
 
-    float SampleTimeInSec = ((double)SampleTime) / 1000;
+    float SampleTimeInSec = ((float)SampleTime) / 1000;
     tunings.p = NewTunings.p;
     tunings.i = NewTunings.i * SampleTimeInSec;
     tunings.d = NewTunings.d / SampleTimeInSec;

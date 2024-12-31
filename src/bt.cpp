@@ -9,7 +9,7 @@
 BTHandler::BTHandler(void updatePID(PID::KPID), void savePID(PID::KPID), void onEnable(bool), PID::KPID &pid) : onEnable(onEnable), PIDupdate(updatePID), PIDsave(savePID), PIDvals(pid) {
     receivedFlag = false;
     btDataString = "";
-    connected = false;
+    heartbeat = false;
     lastPacketTime = millis();
 
     Serial2.begin(38400);
@@ -45,7 +45,7 @@ void BTHandler::receiveData() {
         return;
     btDataString += Serial2.readString();
     int endCharIndex = btDataString.indexOf(EOMchar);
-    if (btDataString.length() > 255)
+    if (btDataString.length() > 127)
         Serial.println("WARN - large read buffer");
 
     while (endCharIndex != -1) {
@@ -89,7 +89,7 @@ void BTHandler::receiveData() {
             break;
         }
     }
-    connected = (millis() - lastPacketTime) < 200;
+    heartbeat = (millis() - lastPacketTime) < 200;
     return;
 };
 

@@ -36,7 +36,7 @@ private:
     String btDataString;
     bool receivedFlag;
     uint32_t lastPacketTime;
-    bool connected;
+    bool heartbeat;
     CTLData ctlData{0, 0, 0};
 };
 
